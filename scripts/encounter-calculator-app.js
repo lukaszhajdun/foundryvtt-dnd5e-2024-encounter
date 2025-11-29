@@ -818,7 +818,41 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       }
 
       for (const item of items) {
+        // Bierzemy tylko typy, które traktujemy jako „loot”
         if (!lootTypes.has(item.type)) continue;
+
+        // ─────────────────────────────────────
+        // POMIŃ BROŃ NATURALNĄ
+        // ─────────────────────────────────────
+        //
+        // W D&D5e 5.x naturalna broń to zazwyczaj:
+        //  - item.type === "weapon"
+        //  - system.weaponType === "natural"
+        //    LUB we właściwościach jest flaga "nat" / "natural".
+        //
+        // Nie chcemy takich broni w auto-loocie – to są wbudowane ataki
+        // potwora (pazury, kły itd.), a nie faktyczny łup.
+        const sys = item.system ?? {};
+        const weaponType = (sys.weaponType ?? "").toString().toLowerCase();
+        const props = sys.properties ?? {};
+
+        const hasNaturalProperty = !!(
+          props.nat ||           // standardowy skrót w dnd5e
+          props.natural          // asekuracyjnie, gdyby system użył pełnej nazwy
+        );
+
+        const isNaturalWeapon =
+          item.type === "weapon" &&
+          (weaponType === "natural" || hasNaturalProperty);
+
+        if (isNaturalWeapon) {
+          // Pomijamy naturalną broń – nie dodajemy jej do łupu.
+          continue;
+        }
+
+        // ─────────────────────────────────────
+        // DALSZA LOGIKA GRUPOWANIA ITEMÓW
+        // ─────────────────────────────────────
 
         const priceGp = this.#getItemGoldValueFromDocument(item);
         const key = item.uuid;
@@ -849,6 +883,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
           quantity: Math.min(99, count)
         });
       }
+
     }
 
     // Zwracamy zgrupowane wpisy jako zwykłą tablicę.
