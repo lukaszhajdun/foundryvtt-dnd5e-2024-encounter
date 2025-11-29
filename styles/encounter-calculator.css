@@ -1,0 +1,1361 @@
+/* styles/encounter-calculator.css */
+
+/**
+ * Główne założenia:
+ *  - wszystkie kolory, rozmiary i odstępy idą przez zmienne CSS,
+ *  - JS może nadpisać:
+ *      - kolory (tło/tekst),
+ *      - skalę fontu,
+ *      - parametry „trybu dostępności” (odstępy, grubość ramek, line-height).
+ */
+
+.dnd5e-encounter-calculator {
+  /* Kolory bazowe (mogą zostać nadpisane przez JS): */
+  --ec-bg-color: #0b0f18;        /* tło okna */
+  --ec-fg-color: #f5f7ff;        /* kolor tekstu */
+
+  /* Kontrastowe warianty tła jako delikatne różnice w jasności: */
+  --ec-header-bg: rgba(255, 255, 255, 0.05);
+  --ec-body-bg: rgba(0, 0, 0, 0.35);
+  --ec-footer-bg: rgba(255, 255, 255, 0.03);
+  --ec-border-subtle: rgba(255, 255, 255, 0.1);
+  --ec-border-strong: rgba(255, 255, 255, 0.4);
+
+  /* Grubości ramek – mogą być pogrubione w trybie dostępności. */
+  --ec-border-width-thin: 1px;
+  --ec-border-width-strong: 1.5px;
+
+  /* Skala czcionki – 1.0 = rozmiar bazowy; nadpisywana przez JS. */
+  --ec-font-scale: 1;
+
+  /* Bazowy rozmiar fontu w pikselach – zwiększony pod dostępność. */
+  --ec-font-base-size: 16px;
+
+  /* Rozmiary względne: */
+  --ec-font-size-base: calc(var(--ec-font-base-size) * var(--ec-font-scale));
+  --ec-font-size-small: calc(var(--ec-font-size-base) * 0.85);
+  --ec-font-size-smaller: calc(var(--ec-font-size-base) * 0.75);
+  --ec-font-size-large: calc(var(--ec-font-size-base) * 1.1);
+
+  /* Line-height – w trybie dostępności JS może to dodatkowo podbić. */
+  --ec-line-height: 1.4;
+
+  /* Promienie zaokrągleń i odstępy – też łatwo zmienialne. */
+  --ec-radius-lg: 0.75rem;
+  --ec-radius-md: 0.5rem;
+  --ec-radius-sm: 0.35rem;
+  --ec-space-xs: 0.25rem;
+  --ec-space-sm: 0.5rem;
+  --ec-space-md: 0.75rem;
+  --ec-space-lg: 1rem;
+
+  /* Minimalny rozmiar elementów klikalnych (przyciski, ikony X). */
+  --ec-control-min-size: 1.8rem;
+
+  /* Cienie i delikatne efekty: */
+  --ec-shadow-soft: 0 0 12px rgba(0, 0, 0, 0.4);
+}
+
+.dnd5e-encounter-calculator .window-content {
+  padding: 0;
+  font-family: var(--font-primary, system-ui, sans-serif);
+  font-size: var(--ec-font-size-base);
+  line-height: var(--ec-line-height);
+  color: var(--ec-fg-color);
+  background-color: var(--ec-bg-color);
+}
+
+/* GŁÓWNY KONTENER APLIKACJI */
+
+.encounter-calculator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--ec-fg-color);
+  background-color: var(--ec-bg-color);
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * HEADER
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ec-space-sm);
+  padding: var(--ec-space-sm) var(--ec-space-lg);
+  border-bottom: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background:
+    linear-gradient(
+      90deg,
+      var(--ec-header-bg),
+      transparent
+    );
+  box-shadow: var(--ec-shadow-soft);
+}
+
+.header-main h1 {
+  margin: 0;
+  font-size: var(--ec-font-size-large);
+  font-weight: 600;
+  color: var(--ec-fg-color);
+}
+
+.encounter-subtitle {
+  margin: var(--ec-space-xs) 0 0;
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.85;
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--ec-space-xs);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: transparent;
+  font-size: var(--ec-font-size-smaller);
+  color: var(--ec-fg-color);
+  cursor: pointer;
+  min-height: var(--ec-control-min-size);
+}
+
+.header-button i {
+  font-size: 0.9em;
+}
+
+.header-button:hover,
+.header-button:focus-visible {
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * BODY – dwie kolumny
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ec-space-md);
+  padding: var(--ec-space-md);
+  background-color: var(--ec-body-bg);
+}
+
+.encounter-column h2 {
+  margin: 0 0 var(--ec-space-sm);
+  font-size: var(--ec-font-size-base);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ec-fg-color);
+}
+
+.encounter-column h2 i {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.encounter-column .count {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.75;
+}
+
+/* Dropzone – miejsce, gdzie można upuścić aktorów */
+
+.encounter-dropzone {
+  border-radius: var(--ec-radius-md);
+  border: var(--ec-border-width-thin) dashed var(--ec-border-subtle);
+  padding: var(--ec-space-sm);
+  min-height: 120px;
+  background-color: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  color: var(--ec-fg-color);
+}
+
+.encounter-dropzone:hover,
+.encounter-dropzone:focus-within {
+  border-style: solid;
+  border-width: var(--ec-border-width-strong);
+  border-color: var(--ec-border-strong);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.8;
+}
+
+/* Lista aktorów */
+
+.actor-list {
+  list-style: none;
+  margin: var(--ec-space-xs) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-xs);
+}
+
+.actor-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ec-space-sm);
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--ec-radius-sm);
+  background-color: rgba(255, 255, 255, 0.03);
+  border: var(--ec-border-width-thin) solid transparent;
+  color: var(--ec-fg-color);
+}
+
+.actor-entry:hover,
+.actor-entry:focus-within {
+  border-color: var(--ec-border-subtle);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.actor-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.actor-main .name {
+  font-weight: 600;
+  font-size: var(--ec-font-size-base);
+}
+
+.actor-main .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.tag {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.85;
+}
+
+.actor-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.actor-meta .xp {
+  font-size: var(--ec-font-size-small);
+  opacity: 0.9;
+}
+
+/* Przycisk usuwania pojedynczego wpisu */
+
+.remove-entry {
+  border: none;
+  background-color: transparent;
+  color: var(--ec-fg-color);
+  cursor: pointer;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  font-size: var(--ec-font-size-smaller);
+  min-height: var(--ec-control-min-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-entry:hover,
+.remove-entry:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * FOOTER – podsumowanie trudności
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-footer {
+  padding: 1rem var(--ec-space-md); /* ZWIĘKSZONA wysokość stopki */
+  border-top: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: var(--ec-footer-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem; /* dodatkowy odstęp między podsumowaniem a przyciskiem */
+}
+
+
+.encounter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ec-space-md);
+  font-size: var(--ec-font-size-small);
+  color: var(--ec-fg-color);
+}
+
+.summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.summary-block .label {
+  opacity: 0.8;
+}
+
+.summary-block .value {
+  font-weight: 600;
+}
+
+.summary-block .difficulty {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Upewniamy się, że przyciski/inputy dziedziczą kolor i font. */
+
+.dnd5e-encounter-calculator button,
+.dnd5e-encounter-calculator input,
+.dnd5e-encounter-calculator select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Popup "Utwórz Encounter"
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-footer-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ec-space-sm);
+}
+
+.encounter-create-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--ec-fg-color);
+  background-color: var(--ec-bg-color);
+}
+
+.encounter-create-body {
+  flex: 1;
+  padding: var(--ec-space-md);
+  background-color: var(--ec-body-bg);
+}
+
+.encounter-create-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-md);
+}
+
+.ec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ec-form-group label {
+  font-size: var(--ec-font-size-small);
+  opacity: 0.9;
+}
+
+.ec-form-group input[type="text"],
+.ec-form-group input[type="number"] {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.35);
+  font-size: var(--ec-font-size-base);
+}
+
+.ec-form-group input[type="text"]:focus-visible,
+.ec-form-group input[type="number"]:focus-visible {
+  outline: none;
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+}
+
+.ec-form-group-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.ec-form-group-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ec-form-group-checkbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ec-currency-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ec-space-sm);
+}
+
+.ec-currency-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ec-currency-field label {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.85;
+}
+
+.encounter-create-footer {
+  border-top: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: var(--ec-footer-bg);
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * 3-przyciskowy przełącznik progu trudności
+ * ──────────────────────────────────────────────────────────────── */
+
+.difficulty-target .label {
+  margin-bottom: 0.15rem;
+}
+
+.difficulty-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+.difficulty-button {
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(255, 255, 255, 0.05);
+  font-size: var(--ec-font-size-smaller);
+  color: var(--ec-fg-color);
+  cursor: pointer;
+  min-height: var(--ec-control-min-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.difficulty-button:hover,
+.difficulty-button:focus-visible {
+  outline: none;
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+.difficulty-button.active {
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.18);
+  font-weight: 600;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Kontrolka ilości (quantity) dla wrogów
+ * ──────────────────────────────────────────────────────────────── */
+
+.quantity-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.quantity-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  border-radius: 9999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  font-size: var(--ec-font-size-smaller);
+  padding: 0;
+}
+
+.quantity-button i {
+  font-size: 0.75rem;
+}
+
+.quantity-button:hover,
+.quantity-button:focus-visible {
+  outline: none;
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.quantity-input {
+  width: 3rem;
+  text-align: center;
+  border-radius: 9999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.35);
+  color: var(--ec-fg-color);
+  font-size: var(--ec-font-size-smaller);
+  padding: 0.15rem 0.4rem;
+}
+
+.quantity-input:focus-visible {
+  outline: none;
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ─────────────────────────────────────────────
+ * POPUP ENCOUNTER – ZAKŁADKI I RESPONSYWNOŚĆ
+ * ──────────────────────────────────────────── */
+
+.encounter-create-dialog {
+  /* Całe wnętrze popupu jest flexem w pionie,
+     żeby stopka była przyklejona na dole,
+     a środek mógł scrollować. */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.encounter-create-body {
+  flex: 1;
+  padding: var(--ec-space-md) var(--ec-space-lg);
+  background-color: var(--ec-body-bg);
+  overflow-y: auto;
+}
+
+/* Pasek zakładek */
+
+.ec-tabs {
+  display: flex;
+  gap: var(--ec-space-xs);
+  padding: var(--ec-space-sm) var(--ec-space-lg) 0;
+  border-bottom: var(--ec-border-width-thin) solid
+    var(--ec-border-subtle);
+}
+
+.ec-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.9rem;
+  border-radius: var(--ec-radius-md) var(--ec-radius-md) 0 0;
+  border: var(--ec-border-width-thin) solid transparent;
+  border-bottom: none;
+  background-color: transparent;
+  font-size: var(--ec-font-size-smaller);
+  color: var(--ec-fg-color);
+  cursor: pointer;
+  min-height: var(--ec-control-min-size);
+}
+
+.ec-tab:hover {
+  border-color: var(--ec-border-subtle);
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.ec-tab.active {
+  border-color: var(--ec-border-strong);
+  border-bottom: 1px solid var(--ec-body-bg);
+  background-color: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+/* Panele zakładek */
+
+.ec-tab-panel {
+  display: none;
+  margin-top: var(--ec-space-md);
+}
+
+.ec-tab-panel.active {
+  display: block;
+}
+
+/* Formularze w popupie encounter */
+
+.encounter-create-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-md);
+}
+
+.ec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-xs);
+}
+
+.ec-form-group label {
+  font-size: var(--ec-font-size-small);
+  font-weight: 600;
+}
+
+.ec-form-group textarea,
+.encounter-create-dialog input[type="text"],
+.encounter-create-dialog input[type="number"] {
+  width: 100%;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--ec-radius-md);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.35);
+  color: var(--ec-fg-color);
+  font-size: var(--ec-font-size-small);
+}
+
+.ec-form-group textarea:focus,
+.encounter-create-dialog input[type="text"]:focus,
+.encounter-create-dialog input[type="number"]:focus {
+  outline: none;
+  border-color: var(--ec-border-strong);
+  box-shadow: 0 0 0 1px var(--ec-border-strong);
+}
+
+.ec-form-group-checkbox {
+  margin-top: var(--ec-space-sm);
+}
+
+.ec-form-group-checkbox label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ec-space-xs);
+}
+
+/* Waluty w zakładce "Waluta" */
+
+.ec-currency-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ec-space-md);
+  margin-bottom: var(--ec-space-sm);
+  flex-wrap: wrap;
+}
+
+.ec-currency-row label {
+  flex: 1 1 40%;
+  font-size: var(--ec-font-size-small);
+  font-weight: 600;
+}
+
+.ec-currency-input {
+  flex: 1 1 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ec-space-xs);
+  justify-content: flex-end;
+}
+
+.ec-currency-input input[type="number"] {
+  width: 6rem;
+  text-align: right;
+}
+
+/* Przycisk z kostką – aktywny przycisk do losowania waluty */
+
+.ec-roll-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ec-control-min-size);
+  height: var(--ec-control-min-size);
+  border-radius: 9999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.25);
+  font-size: var(--ec-font-size-smaller);
+  color: var(--ec-fg-color);
+  cursor: pointer;
+  opacity: 1;
+  transition:
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    transform 80ms ease-out;
+}
+
+.ec-roll-button:hover,
+.ec-roll-button:focus-visible {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--ec-border-strong);
+}
+
+.ec-roll-button:active {
+  transform: translateY(1px);
+}
+
+.ec-roll-button i {
+  pointer-events: none;
+}
+
+
+/* Podpowiedzi / opisy sekcji */
+
+.ecd-section-hint {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.8;
+  margin-bottom: var(--ec-space-sm);
+}
+
+/* styles/encounter-calculator.css */
+
+/**
+ * Główne założenia:
+ *  - wszystkie kolory, rozmiary i odstępy idą przez zmienne CSS,
+ *  - JS może nadpisać:
+ *      - kolory (tło/tekst),
+ *      - skalę fontu,
+ *      - parametry „trybu dostępności” (odstępy, grubość ramek, line-height).
+ */
+
+.dnd5e-encounter-calculator {
+  /* Kolory bazowe (mogą zostać nadpisane przez JS): */
+  --ec-bg-color: #0b0f18;        /* tło okna */
+  --ec-fg-color: #f5f7ff;        /* kolor tekstu */
+
+  --ec-header-bg: rgba(255, 255, 255, 0.05);
+  --ec-body-bg: rgba(0, 0, 0, 0.35);
+  --ec-footer-bg: rgba(255, 255, 255, 0.03);
+
+  --ec-border-subtle: rgba(255, 255, 255, 0.1);
+  --ec-border-strong: rgba(255, 255, 255, 0.4);
+  --ec-border-width-thin: 1px;
+  --ec-border-width-strong: 1.5px;
+
+  /* Skala fontu – 1.0 = wartość bazowa. */
+  --ec-font-scale: 1;
+
+  /* Bazowy rozmiar fontu – większy niż domyślny Foundry (dostępność). */
+  --ec-font-base-size: 18px;
+
+  --ec-font-size-base: calc(var(--ec-font-base-size) * var(--ec-font-scale));
+  --ec-font-size-small: calc(var(--ec-font-size-base) * 0.85);
+  --ec-font-size-smaller: calc(var(--ec-font-size-base) * 0.75);
+  --ec-font-size-large: calc(var(--ec-font-size-base) * 1.1);
+
+  --ec-line-height: 1.4;
+
+  /* Promienie zaokrągleń: */
+  --ec-radius-sm: 6px;
+  --ec-radius-md: 10px;
+  --ec-radius-lg: 16px;
+
+  /* Odstępy: */
+  --ec-space-xs: 0.25rem;
+  --ec-space-sm: 0.5rem;
+  --ec-space-md: 0.75rem;
+  --ec-space-lg: 1rem;
+
+  /* Minimalny rozmiar elementów klikalnych (przyciski, ikony X). */
+  --ec-control-min-size: 1.8rem;
+
+  /* Cienie i delikatne efekty: */
+  --ec-shadow-soft: 0 0 12px rgba(0, 0, 0, 0.4);
+}
+
+.dnd5e-encounter-calculator .window-content {
+  padding: 0;
+  font-family: var(--font-primary, system-ui, sans-serif);
+  font-size: var(--ec-font-size-base);
+  line-height: var(--ec-line-height);
+  color: var(--ec-fg-color);
+  background-color: var(--ec-bg-color);
+}
+
+/* GŁÓWNY KONTENER APLIKACJI */
+
+.encounter-calculator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--ec-fg-color);
+  background-color: var(--ec-bg-color);
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * HEADER
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ec-space-md);
+  padding: var(--ec-space-sm) var(--ec-space-lg);
+  border-bottom: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background: linear-gradient(
+      135deg,
+      var(--ec-header-bg),
+      rgba(255, 255, 255, 0.02)
+    );
+  box-shadow: var(--ec-shadow-soft);
+}
+
+.encounter-header .header-main h1 {
+  margin: 0;
+  font-size: var(--ec-font-size-large);
+  font-weight: 600;
+  color: var(--ec-fg-color);
+}
+
+.encounter-header .encounter-subtitle {
+  margin: var(--ec-space-xs) 0 0;
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.9;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ec-space-xs);
+  justify-content: flex-end;
+}
+
+/* Ogólny styl przycisku nagłówka (używany też w stopce). */
+
+.header-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font-size: var(--ec-font-size-small);
+  cursor: pointer;
+  min-height: var(--ec-control-min-size);
+}
+
+.header-button i {
+  font-size: 0.9em;
+}
+
+.header-button:hover,
+.header-button:focus-visible {
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * BODY – dwie kolumny
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: var(--ec-space-md);
+  padding: var(--ec-space-md);
+  background: radial-gradient(
+    circle at top left,
+    rgba(255, 255, 255, 0.04),
+    transparent 60%
+  );
+}
+
+/* Kolumna (sojusznicy / wrogowie) */
+
+.encounter-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-sm);
+  min-width: 0;
+}
+
+.encounter-column h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: var(--ec-font-size-base);
+  border-bottom: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  padding-bottom: var(--ec-space-xs);
+}
+
+.encounter-column h2 i {
+  color: var(--ec-fg-color);
+}
+
+.encounter-column h2 .count {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.85;
+}
+
+/* Dropzona – pole, na które przeciąga się aktorów. */
+
+.encounter-dropzone {
+  flex: 1;
+  min-height: 7rem;
+  padding: var(--ec-space-sm);
+  border-radius: var(--ec-radius-md);
+  border: var(--ec-border-width-thin) dashed var(--ec-border-subtle);
+  background-color: var(--ec-body-bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-xs);
+}
+
+.encounter-dropzone .hint {
+  margin: 0 0 var(--ec-space-xs);
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.85;
+}
+
+/* Lista aktorów w kolumnie. */
+
+.actor-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-xs);
+}
+
+/* Pojedynczy wpis aktora. */
+
+.actor-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ec-space-xs);
+  padding: var(--ec-space-xs) var(--ec-space-sm);
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* Lewa część wpisu – nazwa, tagi. */
+
+.actor-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.actor-main .name {
+  font-weight: 600;
+  font-size: var(--ec-font-size-base);
+}
+
+.actor-main .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.9;
+}
+
+.actor-main .tags .tag {
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+}
+
+/* Prawa część wpisu – XP, przyciski itd. */
+
+.actor-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ec-space-xs);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.actor-meta .xp {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.9;
+}
+
+/* Przycisk usuwania pojedynczego wpisu. */
+
+.remove-entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ec-control-min-size);
+  height: var(--ec-control-min-size);
+  border-radius: 999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.remove-entry i {
+  font-size: 0.85em;
+}
+
+.remove-entry:hover,
+.remove-entry:focus-visible {
+  border-color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.15);
+  outline: none;
+}
+
+/* Kontrolka ilości (wrogowie po prawej). */
+
+.quantity-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  padding: 0 0.1rem;
+}
+
+.quantity-button {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-button i {
+  font-size: 0.75em;
+}
+
+.quantity-button:hover,
+.quantity-button:focus-visible {
+  background-color: rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+.quantity-input {
+  width: 3rem;
+  border: none;
+  background: transparent;
+  text-align: center;
+  color: inherit;
+  font-size: var(--ec-font-size-smaller);
+  padding: 0.15rem 0.4rem;
+}
+
+.quantity-input:focus-visible {
+  outline: none;
+  border-color: var(--ec-border-strong);
+  border-width: var(--ec-border-width-strong);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * FOOTER kalkulatora
+ * ──────────────────────────────────────────────────────────────── */
+
+.encounter-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ec-space-md);
+  padding: var(--ec-space-sm) var(--ec-space-lg);
+  border-top: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: var(--ec-footer-bg);
+}
+
+.encounter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ec-space-sm);
+  align-items: center;
+}
+
+.summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.summary-block .label {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.85;
+}
+
+.summary-block .value {
+  font-size: var(--ec-font-size-base);
+  font-weight: 600;
+}
+
+.encounter-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ec-space-xs);
+  justify-content: flex-end;
+}
+
+/* Przełącznik progu trudności budżetu XP. */
+
+.difficulty-target {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.difficulty-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border-radius: 999px;
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  overflow: hidden;
+}
+
+.difficulty-button {
+  border: none;
+  background-color: transparent;
+  color: inherit;
+  padding: 0.15rem 0.55rem;
+  font-size: var(--ec-font-size-smaller);
+  cursor: pointer;
+}
+
+.difficulty-button + .difficulty-button {
+  border-left: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+}
+
+.difficulty-button.active {
+  background-color: rgba(255, 255, 255, 0.12);
+  font-weight: 600;
+}
+
+.difficulty-button:hover,
+.difficulty-button:focus-visible {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+/* Etykieta trudności (wynik). */
+
+.summary-block .difficulty {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Upewniamy się, że przyciski/inputy dziedziczą kolor i font. */
+
+.dnd5e-encounter-calculator button,
+.dnd5e-encounter-calculator input,
+.dnd5e-encounter-calculator select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * POPUP ENCOUNTER CREATE – ZAKŁADKA PRZEDMIOTY
+ * ──────────────────────────────────────────────────────────────── */
+
+/* Wrapper zakładki "Przedmioty" w popupie encountera. */
+.ec-items-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-md);
+  height: 100%;
+}
+
+/* Obszar dropu na itemy. */
+.ec-items-dropzone {
+  border: var(--ec-border-width-thin) dashed var(--ec-border-subtle);
+  border-radius: var(--ec-radius-md);
+  padding: var(--ec-space-md);
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.02);
+  font-size: var(--ec-font-size-small);
+}
+
+/* Możesz później dodać klasę .dragover w JS – styl jest już gotowy. */
+.ec-items-dropzone:hover,
+.ec-items-dropzone.dragover {
+  border-color: var(--ec-border-strong);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Lista przedmiotów. */
+.ec-items-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-xs);
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+/* Pojedynczy wiersz z przedmiotem. */
+.ec-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ec-space-sm);
+  padding: var(--ec-space-xs) var(--ec-space-sm);
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* Lewa część wiersza – ikona + nazwa + typ. */
+.ec-item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--ec-space-sm);
+  min-width: 0;
+}
+
+.ec-item-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  flex-shrink: 0;
+}
+
+.ec-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ec-item-name {
+  font-size: var(--ec-font-size-base);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ec-item-meta {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.8;
+}
+
+/* Prawa część – przycisk usuwania. */
+.ec-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ec-space-xs);
+  flex-shrink: 0;
+}
+
+.ec-item-remove {
+  min-width: var(--ec-control-min-size);
+  min-height: var(--ec-control-min-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ec-radius-sm);
+  border: var(--ec-border-width-thin) solid var(--ec-border-subtle);
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.ec-item-remove:hover,
+.ec-item-remove:focus-visible {
+  border-color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.15);
+  outline: none;
+}
+
+/* Wiersz "pustej" listy – gdy nie ma żadnych przedmiotów. */
+.ec-item-empty {
+  font-size: var(--ec-font-size-smaller);
+  opacity: 0.8;
+  padding: var(--ec-space-sm);
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────
+   Encounter Create Dialog – generatory skarbów
+   ───────────────────────────────────────────── */
+
+.ec-section-divider {
+  margin: var(--ec-space-md) 0;
+  border: none;
+  border-top: var(--ec-border-width-thin) solid rgba(255, 255, 255, 0.1);
+}
+
+.dnd5e-encounter-calculator .ec-treasure-section {
+  margin-top: var(--ec-space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ec-space-sm);
+}
+
+.dnd5e-encounter-calculator .ec-section-title {
+  font-size: calc(1rem * var(--ec-font-scale));
+  font-weight: 600;
+  margin: 0;
+}
+
+.dnd5e-encounter-calculator .ec-treasure-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ec-space-sm);
+}
+
+.dnd5e-encounter-calculator .ec-magic-items-info {
+  margin-top: var(--ec-space-sm);
+  font-size: calc(0.95rem * var(--ec-font-scale));
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.dnd5e-encounter-calculator .ec-magic-items-info .label {
+  opacity: 0.8;
+}
+
+.dnd5e-encounter-calculator .ec-magic-items-info .value {
+  font-weight: 600;
+}
+
+/* Mały dialog wyboru trybu skarbu – korzysta z tych samych klas,
+   więc nie wymaga specjalnych styli poza tym co już mamy. */
+
+
+
+
+

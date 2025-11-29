@@ -1,0 +1,55 @@
+<div class="encounter-create-dialog encounter-roll-dialog">
+  <!-- NAGŁÓWEK POPUPU -->
+  <header class="encounter-header">
+    <div class="header-main">
+      <h1>Losowanie waluty</h1>
+      <p class="encounter-subtitle">
+        Wprowadź formułę rzutu kośćmi dla <strong>{{currencyLabel}}</strong>.
+      </p>
+    </div>
+  </header>
+
+  <!-- CIAŁO POPUPU -->
+  <section class="encounter-create-body">
+    <div class="encounter-create-form-grid">
+      <div class="ec-form-group">
+        <label for="ec-roll-formula">Formuła rzutu</label>
+        <input
+          id="ec-roll-formula"
+          name="formula"
+          type="text"
+          value="{{defaultFormula}}"
+          placeholder="np. 3d6 + 2, 2d8*10, (3d10+2)*2"
+        />
+        <p class="ecd-section-hint">
+          Obsługiwane są wszystkie formuły, które rozumie Foundry 13:
+          <code>1d100</code>, <code>3d10 + 40</code>, <code>(3d10 + 2) * 2</code>,
+          <code>3d100 + 4d10 - 1</code> i wiele innych.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STOPKA Z PRZYCISKAMI -->
+  <footer class="encounter-footer encounter-create-footer">
+    <div class="encounter-footer-actions">
+      <button
+        type="button"
+        class="header-button"
+        data-action="roll"
+      >
+        <i class="fa-solid fa-dice"></i>
+        <span>Rzuć</span>
+      </button>
+
+      <button
+        type="button"
+        class="header-button"
+        data-action="cancel"
+      >
+        <i class="fa-solid fa-xmark"></i>
+        <span>Anuluj</span>
+      </button>
+    </div>
+  </footer>
+</div>

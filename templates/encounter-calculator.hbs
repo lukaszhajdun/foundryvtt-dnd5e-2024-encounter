@@ -1,0 +1,227 @@
+<div class="encounter-calculator">
+  <header class="encounter-header">
+    <div class="header-main">
+      <h1>D&D 5e 2024 – Kalkulator Starcia</h1>
+      <p class="encounter-subtitle">
+        Przeciągnij aktorów (PC, sojuszników i wrogów) z Aktorów, kompensów lub z mapy do odpowiedniej kolumny,
+        aby obliczyć trudność starcia.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="header-button" data-action="clearAllies">
+        <i class="fa-solid fa-users-slash"></i>
+        <span>Wyczyść sojuszników</span>
+      </button>
+      <button type="button" class="header-button" data-action="clearEnemies">
+        <i class="fa-solid fa-skull-crossbones"></i>
+        <span>Wyczyść wrogów</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="encounter-body">
+    <!-- LEWA KOLUMNA – SOJUSZNICY -->
+    <section class="encounter-column" data-side="allies">
+      <h2>
+        <i class="fa-solid fa-users"></i>
+        <span>Sojusznicy</span>
+        <span class="count">({{alliesCount}})</span>
+      </h2>
+
+      <div class="encounter-dropzone" data-side="allies">
+        <p class="hint">
+          Przeciągnij tutaj postacie graczy, przyjaznych NPC lub inne jednostki po stronie drużyny.
+        </p>
+
+        <ul class="actor-list">
+          {{#each allies}}
+            <li class="actor-entry" data-side="allies" data-uuid="{{this.uuid}}">
+              <div class="actor-main">
+                <div class="name">{{this.name}}</div>
+                <div class="tags">
+                  {{#if this.level}}
+                    <span class="tag">Poziom {{this.level}}</span>
+                  {{/if}}
+                  {{#if this.cr}}
+                    <span class="tag">CR {{this.cr}}</span>
+                  {{/if}}
+                  <span class="tag">{{this.type}}</span>
+                </div>
+              </div>
+              <div class="actor-meta">
+                {{#if this.xp}}
+                  <span class="xp">{{this.xp}} XP</span>
+                {{/if}}
+                <button
+                  type="button"
+                  class="remove-entry"
+                  data-action="removeEntry"
+                  data-side="allies"
+                  data-uuid="{{this.uuid}}"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </section>
+
+    <!-- PRAWA KOLUMNA – WROGOWIE -->
+    <section class="encounter-column" data-side="enemies">
+      <h2>
+        <i class="fa-solid fa-dragon"></i>
+        <span>Wrogowie</span>
+        <span class="count">({{enemiesCount}})</span>
+      </h2>
+
+      <div class="encounter-dropzone" data-side="enemies">
+        <p class="hint">
+          Przeciągnij tutaj potwory lub wrogich NPC (a nawet wrogich PC), aby uwzględnić ich w starciu.
+        </p>
+
+        <ul class="actor-list">
+          {{#each enemies}}
+            <li class="actor-entry" data-side="enemies" data-uuid="{{this.uuid}}">
+              <div class="actor-main">
+                <div class="name">{{this.name}}</div>
+                <div class="tags">
+                  {{#if this.level}}
+                    <span class="tag">Poziom {{this.level}}</span>
+                  {{/if}}
+                  {{#if this.cr}}
+                    <span class="tag">CR {{this.cr}}</span>
+                  {{/if}}
+                  <span class="tag">{{this.type}}</span>
+                </div>
+              </div>
+
+              <div class="actor-meta">
+                <!-- KONTROLKA ILOŚCI: -, input, + -->
+                <div class="quantity-control">
+                  <button
+                    type="button"
+                    class="quantity-button"
+                    data-action="decreaseQuantity"
+                    data-side="enemies"
+                    data-uuid="{{this.uuid}}"
+                    aria-label="Zmniejsz ilość"
+                  >
+                    <i class="fa-solid fa-minus"></i>
+                  </button>
+
+                  <input
+                    type="number"
+                    class="quantity-input"
+                    value="{{this.quantity}}"
+                    min="1"
+                    max="99"
+                    data-side="enemies"
+                    data-uuid="{{this.uuid}}"
+                    aria-label="Ilość tego wroga"
+                  />
+
+                  <button
+                    type="button"
+                    class="quantity-button"
+                    data-action="increaseQuantity"
+                    data-side="enemies"
+                    data-uuid="{{this.uuid}}"
+                    aria-label="Zwiększ ilość"
+                  >
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+
+                <!-- Całkowite XP = xp pojedynczego * quantity -->
+                {{#if this.totalXp}}
+                  <span class="xp">{{this.totalXp}} XP</span>
+                {{else}}
+                  {{#if this.xp}}
+                    <span class="xp">{{this.xp}} XP</span>
+                  {{/if}}
+                {{/if}}
+
+                <!-- Usuń cały wpis wroga -->
+                <button
+                  type="button"
+                  class="remove-entry"
+                  data-action="removeEntry"
+                  data-side="enemies"
+                  data-uuid="{{this.uuid}}"
+                  aria-label="Usuń tego wroga"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </section>
+  </section>
+
+  <footer class="encounter-footer">
+    <div class="encounter-summary">
+      <div class="summary-block">
+        <span class="label">Budżet XP (docelowy)</span>
+        <span class="value">{{xpBudget}}</span>
+      </div>
+      <div class="summary-block">
+        <span class="label">Całkowite XP wrogów</span>
+        <span class="value">{{xpTotal}}</span>
+      </div>
+      <div class="summary-block">
+        <span class="label">Trudność względem budżetu</span>
+        <span class="value difficulty">{{difficultyLabel}}</span>
+      </div>
+
+      <!-- Przełącznik progu budżetu: Niska / Umiarkowana / Wysoka -->
+      <div class="summary-block difficulty-target">
+        <span class="label">Budowane pod trudność</span>
+        <div class="difficulty-toggle" role="radiogroup" aria-label="Poziom budżetu XP">
+          <button
+            type="button"
+            class="difficulty-button {{#if isTargetLow}}active{{/if}}"
+            data-action="setTargetDifficulty"
+            data-diff="low"
+            aria-pressed="{{#if isTargetLow}}true{{else}}false{{/if}}"
+          >
+            Niska
+          </button>
+          <button
+            type="button"
+            class="difficulty-button {{#if isTargetModerate}}active{{/if}}"
+            data-action="setTargetDifficulty"
+            data-diff="moderate"
+            aria-pressed="{{#if isTargetModerate}}true{{else}}false{{/if}}"
+          >
+            Umiarkowana
+          </button>
+          <button
+            type="button"
+            class="difficulty-button {{#if isTargetHigh}}active{{/if}}"
+            data-action="setTargetDifficulty"
+            data-diff="high"
+            aria-pressed="{{#if isTargetHigh}}true{{else}}false{{/if}}"
+          >
+            Wysoka
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="encounter-footer-actions">
+      <button
+        type="button"
+        class="header-button"
+        data-action="openEncounterDialog"
+      >
+        <i class="fa-solid fa-dragon"></i>
+        <span>Utwórz Encounter</span>
+      </button>
+    </div>
+  </footer>
+</div>

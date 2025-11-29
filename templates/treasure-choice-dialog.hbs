@@ -1,0 +1,47 @@
+<div class="encounter-create-dialog treasure-choice-dialog">
+  <header class="encounter-header">
+    <div class="header-main">
+      <h1>{{title}}</h1>
+      <p class="encounter-subtitle">
+        {{message}}
+      </p>
+    </div>
+  </header>
+
+  <section class="encounter-create-body">
+    <p class="ecd-section-hint">
+      {{hint}}
+    </p>
+  </section>
+
+  <footer class="encounter-footer encounter-create-footer">
+    <div class="encounter-footer-actions">
+      <button
+        type="button"
+        class="header-button"
+        data-action="chooseRoll"
+      >
+        <i class="fa-solid fa-dice"></i>
+        <span>Rzuty kośćmi</span>
+      </button>
+
+      <button
+        type="button"
+        class="header-button"
+        data-action="chooseAverage"
+      >
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Użyj średnich</span>
+      </button>
+
+      <button
+        type="button"
+        class="header-button"
+        data-action="cancel"
+      >
+        <i class="fa-solid fa-xmark"></i>
+        <span>Anuluj</span>
+      </button>
+    </div>
+  </footer>
+</div>

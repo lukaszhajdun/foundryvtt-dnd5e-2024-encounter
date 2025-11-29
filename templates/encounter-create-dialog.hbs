@@ -1,0 +1,424 @@
+<div class="encounter-create-dialog">
+  <!-- NAGŁÓWEK POPUPU -->
+  <header class="encounter-header">
+    <div class="header-main">
+      <h1>Utwórz encounter</h1>
+      <p class="encounter-subtitle">
+        Skonfiguruj encounter na podstawie bieżących wrogów z kalkulatora.
+      </p>
+    </div>
+  </header>
+
+  <!-- ZAKŁADKI -->
+  <nav class="ec-tabs" role="tablist" aria-label="Ustawienia encountera">
+    <button
+      type="button"
+      class="ec-tab {{#if isTabGeneral}}active{{/if}}"
+      data-action="switchTab"
+      data-tab="general"
+      role="tab"
+      aria-selected="{{#if isTabGeneral}}true{{else}}false{{/if}}"
+    >
+      Ogólne
+    </button>
+
+    <button
+      type="button"
+      class="ec-tab {{#if isTabCurrency}}active{{/if}}"
+      data-action="switchTab"
+      data-tab="currency"
+      role="tab"
+      aria-selected="{{#if isTabCurrency}}true{{else}}false{{/if}}"
+    >
+      Waluta
+    </button>
+
+    <button
+      type="button"
+      class="ec-tab {{#if isTabItems}}active{{/if}}"
+      data-action="switchTab"
+      data-tab="items"
+      role="tab"
+      aria-selected="{{#if isTabItems}}true{{else}}false{{/if}}"
+    >
+      Przedmioty
+    </button>
+  </nav>
+
+  <!-- CIAŁO POPUPU -->
+  <section class="encounter-create-body">
+    <!-- ZAKŁADKA: OGÓLNE -->
+    <section
+      class="ec-tab-panel {{#if isTabGeneral}}active{{/if}}"
+      data-tab="general"
+      role="tabpanel"
+      aria-label="Ogólne ustawienia encountera"
+    >
+      <div class="encounter-create-form-grid">
+        <!-- NAZWA ENCOUNTERA -->
+        <div class="ec-form-group">
+          <label for="ec-encounter-name">Nazwa encountera</label>
+          <input
+            id="ec-encounter-name"
+            name="encounterName"
+            type="text"
+            value="{{name}}"
+          />
+        </div>
+
+        <!-- PODSUMOWANIE (SUMMARY) -->
+        <div class="ec-form-group">
+          <label for="ec-encounter-summary">Podsumowanie</label>
+          <textarea
+            id="ec-encounter-summary"
+            name="encounterSummary"
+            rows="2"
+          >{{summary}}</textarea>
+        </div>
+
+        <!-- OPIS (DESCRIPTION) -->
+        <div class="ec-form-group">
+          <label for="ec-encounter-description">Opis</label>
+          <textarea
+            id="ec-encounter-description"
+            name="encounterDescription"
+            rows="4"
+          >{{description}}</textarea>
+        </div>
+
+        <!-- CHECKBOX: UŻYJ / UTWÓRZ KATALOG -->
+        <div class="ec-form-group ec-form-group-checkbox">
+          <label>
+            <input
+              type="checkbox"
+              name="useFolder"
+              {{#if useFolder}}checked{{/if}}
+            />
+            <span>Twórz / użyj katalogu</span>
+          </label>
+        </div>
+
+        <!-- NAZWA KATALOGU -->
+        <div class="ec-form-group">
+          <label for="ec-folder-name">Nazwa katalogu</label>
+          <input
+            id="ec-folder-name"
+            name="folderName"
+            type="text"
+            value="{{folderName}}"
+            placeholder="Encounters"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ZAKŁADKA: WALUTA -->
+    <section
+      class="ec-tab-panel {{#if isTabCurrency}}active{{/if}}"
+      data-tab="currency"
+      role="tabpanel"
+      aria-label="Waluta encountera"
+    >
+      <p class="ecd-section-hint">
+        Wprowadź ręcznie ilości waluty lub użyj przycisku z kostką, aby wylosować
+        wartość na podstawie formuły rzutu kośćmi. Generatory skarbów poniżej
+        wyczyszczą wszystkie pola waluty i zastąpią je wynikami zgodnymi z tabelami.
+      </p>
+
+      <!-- Platyna (PP) -->
+      <div class="ec-currency-row">
+        <label for="ec-pp">Platyna (PP)</label>
+        <div class="ec-currency-input">
+          <input
+            id="ec-pp"
+            name="platinum"
+            type="number"
+            min="0"
+            step="1"
+            value="{{platinum}}"
+          />
+          <button
+            type="button"
+            class="ec-roll-button"
+            data-currency="platinum"
+            title="Wylosuj ilość platyny"
+          >
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Złoto (GP) -->
+      <div class="ec-currency-row">
+        <label for="ec-gp">Złoto (GP)</label>
+        <div class="ec-currency-input">
+          <input
+            id="ec-gp"
+            name="gold"
+            type="number"
+            min="0"
+            step="1"
+            value="{{gold}}"
+          />
+          <button
+            type="button"
+            class="ec-roll-button"
+            data-currency="gold"
+            title="Wylosuj ilość złota"
+          >
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Srebro (SP) -->
+      <div class="ec-currency-row">
+        <label for="ec-sp">Srebro (SP)</label>
+        <div class="ec-currency-input">
+          <input
+            id="ec-sp"
+            name="silver"
+            type="number"
+            min="0"
+            step="1"
+            value="{{silver}}"
+          />
+          <button
+            type="button"
+            class="ec-roll-button"
+            data-currency="silver"
+            title="Wylosuj ilość srebra"
+          >
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Miedź (CP) -->
+      <div class="ec-currency-row">
+        <label for="ec-cp">Miedź (CP)</label>
+        <div class="ec-currency-input">
+          <input
+            id="ec-cp"
+            name="copper"
+            type="number"
+            min="0"
+            step="1"
+            value="{{copper}}"
+          />
+          <button
+            type="button"
+            class="ec-roll-button"
+            data-currency="copper"
+            title="Wylosuj ilość miedzi"
+          >
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Electrum (EP) -->
+      <div class="ec-currency-row">
+        <label for="ec-ep">Electrum (EP)</label>
+        <div class="ec-currency-input">
+          <input
+            id="ec-ep"
+            name="electrum"
+            type="number"
+            min="0"
+            step="1"
+            value="{{electrum}}"
+          />
+          <button
+            type="button"
+            class="ec-roll-button"
+            data-currency="electrum"
+            title="Wylosuj ilość electrum"
+          >
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </div>
+
+      <hr class="ec-section-divider" />
+
+      <!-- GENERATORY SKARBÓW -->
+      <div class="ec-treasure-section">
+        <h3 class="ec-section-title">Generatory skarbów</h3>
+        <p class="ecd-section-hint">
+          Wygeneruj skarb dla obecnych wrogów zgodnie z tabelami
+          <strong>Individual Treasure</strong> i <strong>Treasure Hoard</strong>.
+          Uruchomienie generatora <strong>wyczyści wszystkie pola waluty</strong>
+          i zastąpi je nowymi wynikami.
+        </p>
+
+        <div class="ec-treasure-buttons">
+          <button
+            type="button"
+            class="header-button"
+            data-action="generateIndividualTreasure"
+          >
+            <i class="fa-solid fa-dice"></i>
+            <span>Individual Treasure</span>
+          </button>
+
+          <button
+            type="button"
+            class="header-button"
+            data-action="generateTreasureHoard"
+          >
+            <i class="fa-solid fa-sack-dollar"></i>
+            <span>Treasure Hoard</span>
+          </button>
+        </div>
+
+        <div class="ec-magic-items-info">
+          <span class="label">Wylosowane magiczne przedmioty:</span>
+          <span class="value">{{magicItemsCount}}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZAKŁADKA: PRZEDMIOTY -->
+    <section
+      class="ec-tab-panel {{#if isTabItems}}active{{/if}}"
+      data-tab="items"
+      role="tabpanel"
+      aria-label="Przedmioty encountera"
+    >
+      <div class="ec-items-panel">
+        <!-- Dropzone na itemy -->
+        <div
+          class="ec-items-dropzone"
+          data-drop="items"
+        >
+          <p class="ecd-section-hint">
+            Przeciągnij tutaj przedmioty z kompedi&oacute;w lub ze świata,
+            aby dodać je do łupu encountera.
+          </p>
+        </div>
+
+        <!-- Lista aktualnie dodanych przedmiotów -->
+        <ul class="ec-items-list">
+          {{#each items}}
+            <li class="ec-item-row" data-item-id="{{this._id}}">
+              <div class="ec-item-main">
+                <img
+                  class="ec-item-icon"
+                  src="{{this.img}}"
+                  alt="{{this.name}}"
+                />
+                <div class="ec-item-text">
+                  <div class="ec-item-name">{{this.name}}</div>
+                  <div class="ec-item-meta">
+                    <span class="tag">{{this.type}}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ec-item-actions">
+                <!-- Kontrolka ilości: -, input, + -->
+                <div class="quantity-control">
+                  <button
+                    type="button"
+                    class="quantity-button"
+                    data-action="decreaseItemQuantity"
+                    data-item-id="{{this._id}}"
+                    aria-label="Zmniejsz ilość"
+                  >
+                    <i class="fa-solid fa-minus"></i>
+                  </button>
+
+                  <input
+                    type="number"
+                    class="quantity-input ec-item-quantity-input"
+                    value="{{this.quantity}}"
+                    min="1"
+                    max="99"
+                    data-item-id="{{this._id}}"
+                    aria-label="Ilość tego przedmiotu"
+                  />
+
+                  <button
+                    type="button"
+                    class="quantity-button"
+                    data-action="increaseItemQuantity"
+                    data-item-id="{{this._id}}"
+                    aria-label="Zwiększ ilość"
+                  >
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+
+                <!-- Usuń cały wpis przedmiotu -->
+                <button
+                  type="button"
+                  class="ec-item-remove"
+                  data-action="removeItem"
+                  data-item-id="{{this._id}}"
+                  aria-label="Usuń ten przedmiot"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </li>
+          {{else}}
+            <li class="ec-item-empty">
+              <span>
+                Brak przedmiotów. Przeciągnij coś z kompedi&oacute;w
+                lub zakładki <strong>Przedmioty</strong>, aby dodać łup.
+              </span>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </section>
+  </section>
+
+  <!-- STOPKA Z PRZYCISKAMI -->
+  <footer class="encounter-footer encounter-create-footer">
+    <div class="encounter-summary">
+      <div class="summary-block">
+        <span class="label">Wrogowie</span>
+        <span class="value">{{enemiesCount}}</span>
+      </div>
+
+      <div class="summary-block">
+        <span class="label">Złoto</span>
+        <span class="value">{{totalGoldGp}} GP</span>
+      </div>
+
+      <div class="summary-block">
+        <span class="label">Wartość przedmiotów</span>
+        <span class="value">{{itemsGoldValue}} GP</span>
+      </div>
+
+      <div class="summary-block">
+        <span class="label">Razem</span>
+        <span class="value">{{totalEncounterValue}} GP</span>
+      </div>
+    </div>
+
+    <div class="encounter-footer-actions">
+      <!-- NIE ZAMYKA OKNA – TYLKO ZAPISUJE DOMYŚLNE USTAWIENIA POPUPU -->
+      <button
+        type="button"
+        class="header-button"
+        data-action="saveEncounterSettings"
+      >
+        <i class="fa-solid fa-floppy-disk"></i>
+        <span>Zapisz ustawienia</span>
+      </button>
+
+      <!-- TWORZY AKTORA ENCOUNTER I ZAMYKA POPUP -->
+      <button
+        type="button"
+        class="header-button"
+        data-action="createEncounterActor"
+      >
+        <i class="fa-solid fa-dragon"></i>
+        <span>Utwórz</span>
+      </button>
+    </div>
+  </footer>
+</div>

@@ -1,0 +1,54 @@
+{
+  "id": "dnd5e-2024-encounter",
+  "title": "D&D 5e 2024 – Encounter Calculator",
+  "description": "Zaawansowany kalkulator trudności spotkań dla D&D 5e 2024. Obsługuje drag & drop aktorów, konwersję CR na XP, tworzenie aktora typu encounter, generowanie i przeliczanie waluty, dodawanie przedmiotów oraz pełne wsparcie motywów kolorystycznych i dostępności.",
+  "version": "0.4.0",
+
+  "authors": [
+    {
+      "name": "lhajdun",
+      "url": "",
+      "discord": ""
+    }
+  ],
+
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+
+  "esmodules": [
+    "scripts/main.js"
+  ],
+
+  "styles": [
+    "styles/encounter-calculator.css"
+  ],
+
+  "languages": [
+    {
+      "lang": "pl",
+      "name": "Polski",
+      "path": "lang/pl.json"
+    }
+  ],
+
+  "packs": [],
+
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5",
+          "verified": "5"
+        }
+      }
+    ]
+  },
+
+  "url": "",
+  "manifest": "",
+  "download": ""
+}
