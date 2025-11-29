@@ -48,7 +48,7 @@
     ]
   },
 
-  "url": "",
-  "manifest": "",
+  "url": "https://github.com/lukaszhajdun/foundryvtt-dnd5e-2024-encounter",
+  "manifest": "https://raw.githubusercontent.com/lukaszhajdun/foundryvtt-dnd5e-2024-encounter/refs/heads/main/module.json",
   "download": ""
 }
