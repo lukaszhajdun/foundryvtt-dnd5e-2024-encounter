@@ -2,7 +2,7 @@
   "id": "dnd5e-2024-encounter",
   "title": "D&D 5e 2024 – Encounter Calculator",
   "description": "Zaawansowany kalkulator trudności spotkań dla D&D 5e 2024. Obsługuje drag & drop aktorów, konwersję CR na XP, tworzenie aktora typu encounter, generowanie i przeliczanie waluty, dodawanie przedmiotów oraz pełne wsparcie motywów kolorystycznych i dostępności.",
-  "version": "0.4.1",
+  "version": "0.4.2",
 
   "authors": [
     {
@@ -50,5 +50,5 @@
 
   "url": "https://github.com/lukaszhajdun/foundryvtt-dnd5e-2024-encounter",
   "manifest": "https://raw.githubusercontent.com/lukaszhajdun/foundryvtt-dnd5e-2024-encounter/refs/heads/main/module.json",
-  "download": "https://github.com/lukaszhajdun/foundryvtt-dnd5e-2024-encounter/releases/download/v0.4.1/dnd5e-2024-encounter-0.4.1.zip.zip"
+  "download": "https://github.com/lukaszhajdun/foundryvtt-dnd5e-2024-encounter/releases/download/v0.4.2/dnd5e-2024-encounter-0.4.2.zip.zip"
 }

@@ -825,28 +825,38 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
         // POMIŃ BROŃ NATURALNĄ
         // ─────────────────────────────────────
         //
-        // W D&D5e 5.x naturalna broń to zazwyczaj:
-        //  - item.type === "weapon"
-        //  - system.weaponType === "natural"
-        //    LUB we właściwościach jest flaga "nat" / "natural".
+        // W systemie dnd5e 2024 naturalna broń ma strukturę:
+        //  item.type === "weapon"
+        //  item.system.type.value === "natural"
         //
-        // Nie chcemy takich broni w auto-loocie – to są wbudowane ataki
-        // potwora (pazury, kły itd.), a nie faktyczny łup.
+        // Dodatkowo asekuracyjnie sprawdzamy tablicę properties,
+        // gdyby system dorzucał tam etykiety typu "natural" / "nat".
         const sys = item.system ?? {};
-        const weaponType = (sys.weaponType ?? "").toString().toLowerCase();
-        const props = sys.properties ?? {};
+        const typeData = sys.type ?? {};
+        const weaponType = (typeData.value ?? "")
+          .toString()
+          .toLowerCase();
 
-        const hasNaturalProperty = !!(
-          props.nat ||           // standardowy skrót w dnd5e
-          props.natural          // asekuracyjnie, gdyby system użył pełnej nazwy
-        );
+        const propsArray = Array.isArray(sys.properties)
+          ? sys.properties
+          : [];
+
+        // W niektórych wersjach właściwości mogą być stringami
+        // albo obiektami z polem "value" – normalizujemy do stringa.
+        const hasNaturalProperty = propsArray.some((p) => {
+          const raw = typeof p === "string" ? p : p?.value;
+          if (!raw) return false;
+          const key = raw.toString().toLowerCase();
+          return key === "natural" || key === "nat";
+        });
 
         const isNaturalWeapon =
           item.type === "weapon" &&
           (weaponType === "natural" || hasNaturalProperty);
 
         if (isNaturalWeapon) {
-          // Pomijamy naturalną broń – nie dodajemy jej do łupu.
+          // Pomijamy naturalną broń – to wbudowany atak potwora,
+          // nie realny łup.
           continue;
         }
 
@@ -858,10 +868,8 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
         const key = item.uuid;
         if (!key) continue;
 
-        // Liczba sztuk tego itemu, którą wnosi ten jeden wpis wroga.
         const count = repeats;
 
-        // Jeśli już mamy ten item w grupie – zwiększamy ilość.
         const existing = grouped.get(key);
         if (existing) {
           const newQty = Math.min(
@@ -872,7 +880,6 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
           continue;
         }
 
-        // Jeśli to pierwszy raz, gdy widzimy ten item – tworzymy wpis.
         grouped.set(key, {
           _id: foundry.utils.randomID(),
           uuid: item.uuid,
@@ -883,6 +890,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
           quantity: Math.min(99, count)
         });
       }
+
 
     }
 
