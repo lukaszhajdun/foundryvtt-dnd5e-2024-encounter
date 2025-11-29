@@ -3,6 +3,8 @@
 Zaawansowany kalkulator starć dla Foundry VTT 13+
 Zgodny z zasadami Dungeon Master’s Guide 2024
 
+
+
 📖 Opis modułu
 
 Encounter Calculator to nowoczesne narzędzie dla Dungeon Masterów, które pozwala łatwo budować, analizować i zapisywać starcia zgodnie z zasadami D&D 5e 2024.
@@ -30,6 +32,8 @@ aktorów typu group (automatyczny import członków),
 
 aktorów typu encounter (import wrogów).
 
+
+
 🪙 Zaawansowana obsługa walut i skarbów:
 
 ręczne wpisywanie walut,
@@ -43,6 +47,8 @@ Treasure Hoards (DMG 2024),
 czyszczenie walut przed generowaniem,
 
 automatyczne przeliczanie na GP.
+
+
 
 🧰 Zaawansowane tworzenie encounterów:
 
@@ -58,6 +64,8 @@ wartość przedmiotów,
 
 wartość całkowita encountera.
 
+
+
 🧺 Auto-loot z potworów:
 
 wszystkie przedmioty lub po jednym,
@@ -67,6 +75,8 @@ pomijanie zaklęć,
 pomijanie naturalnych broni,
 
 obsługa stackowania i wartości w GP.
+
+
 
 🎨 Motywy i dostępność:
 
@@ -93,6 +103,8 @@ Włącz moduł w:
 
 Game Settings → Manage Modules
 
+
+
 🧭 Otwieranie kalkulatora
 
 W panelu narzędzi po lewej stronie pojawia się nowy przycisk:
@@ -114,6 +126,8 @@ z kompedyjów,
 aktorów typu group (automatycznie rozbijani na członków),
 
 aktorów typu encounter.
+
+
 
 📂 Panel: Sojusznicy i Wrogowie
 Lewa kolumna — Sojusznicy
@@ -146,6 +160,8 @@ Wysoka
 
 Wybór natychmiast aktualizuje docelowy budżet XP.
 
+
+
 🧮 Analiza encountera
 
 Stopka kalkulatora wyświetla:
@@ -164,6 +180,8 @@ Przycisk „Utwórz Encounter”
 
 Kliknięcie Utwórz Encounter otwiera rozbudowany popup z trzema zakładkami:
 
+
+
 🟦 Zakładka: Ogólne
 
 Pola:
@@ -179,6 +197,8 @@ Checkbox: Twórz / użyj katalogu
 Pole: nazwa folderu
 
 Dane NIE resetują się podczas przełączania zakładek.
+
+
 
 🟧 Zakładka: Waluta
 
@@ -200,6 +220,8 @@ Stopka pokazuje:
 
 wartość walut w GP (z dokładnością do 0.01).
 
+
+
 🎲 Rzuty walut (dowolne formuły Foundry)
 
 Przy każdej walucie:
@@ -212,6 +234,8 @@ wpisz formułę (np. 3d100 + 4d10, 2d12*5),
 
 wartość zostanie wpisana do pola waluty.
 
+
+
 💰 Individual Treasure (zależnie od CR każdego wroga)
 
 Liczone osobno dla każdego wroga,
@@ -221,6 +245,8 @@ oparte o tabelę DMG 2024,
 wybór: rzut / średnia,
 
 wynik nadpisuje pola walut.
+
+
 
 🪙 Treasure Hoards (wg najwyższego CR)
 
@@ -235,6 +261,8 @@ liczbę magicznych przedmiotów,
 waluty nadpisane,
 
 przedmioty magiczne: tylko liczba (informacja dla DM-a).
+
+
 
 🟩 Zakładka: Przedmioty
 
@@ -274,6 +302,8 @@ Razem (suma obu, 0.01 GP)
 
 W: Game Settings → Configure Settings → Module Settings
 
+
+
 🎨 Motywy:
 
 Dark
@@ -283,6 +313,8 @@ Light
 High Contrast
 
 Custom (własne kolory)
+
+
 
 🔍 Tryb dostępności:
 
@@ -300,6 +332,8 @@ Per type – po jednym z danego typu (bez naturalnych broni)
 
 All items – wszystkie przedmioty (bez zaklęć i naturalnych broni)
 
+
+
 🧭 Wskazówki dla DM-a
 
 Encountery można przeciągać między kompedyjami.
@@ -312,6 +346,8 @@ Generator skarbów jest zgodny z DMG 2024 (i w pełni nadpisuje waluty).
 Przedmioty naturalne (Slam, Bite, Claw) nigdy nie trafią do łupu.
 
 Moduł integruje się z aktorami typu group i encounter, więc możesz łatwo przenosić całe drużyny i pakiety potworów.
+
+
 
 📦 Status projektu
 
