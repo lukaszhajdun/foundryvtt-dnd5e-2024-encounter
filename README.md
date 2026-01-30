@@ -1,7 +1,7 @@
 📘 D&D 5e 2024 – Encounter Calculator
 
 Zaawansowany kalkulator starć dla Foundry VTT 13+
-Zgodny z zasadami Dungeon Master’s Guide 2024
+Zgodny z zasadami 5e 2024
 
 
 
@@ -362,4 +362,5 @@ zapisów presetów encounterów,
 
 integracji z Combat Trackerem.
 
-📄 Licencja
+This work includes material from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast
+LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons.
