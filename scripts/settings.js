@@ -246,6 +246,39 @@ export function registerModuleSettings() {
       default: "perEnemy"
     });
   
+  // ─────────────────────────────────────────────
+  // Autowczytywanie zapisu sojuszników przy otwarciu kalkulatora
+  // ─────────────────────────────────────────────
+  game.settings.register(MODULE_ID, "autoLoadSavedAllies", {
+    name: "Autowczytywanie zapisu sojuszników",
+    hint:
+      "Jeśli włączone, kalkulator automatycznie wczyta zapisanych sojuszników przy otwarciu.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  // ─────────────────────────────────────────────
+  // Zapisane presety drużyny / sojuszników (przechowywane w ustawieniach świata)
+  // Nie są widoczne w konfiguracji modułu (config: false).
+  // ─────────────────────────────────────────────
+  game.settings.register(MODULE_ID, "savedTeam", {
+    name: "Zapisana drużyna (UUID)",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { uuids: [] }
+  });
+
+  game.settings.register(MODULE_ID, "savedAllies", {
+    name: "Zapisani sojusznicy (UUID)",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { uuids: [] }
+  });
+  
 
   // (Na tym etapie celowo NIE rejestrujemy domyślnych wartości
   // dla platyny / electrum – i NIE importujemy żadnych dodatkowych

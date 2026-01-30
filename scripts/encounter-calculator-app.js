@@ -81,6 +81,10 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     actions: {
       clearAllies: EncounterCalculatorApp._onActionClearAllies,
       clearEnemies: EncounterCalculatorApp._onActionClearEnemies,
+      saveTeam: EncounterCalculatorApp._onActionSaveTeam,
+      saveAllies: EncounterCalculatorApp._onActionSaveAllies,
+      loadSaved: EncounterCalculatorApp._onActionLoadSaved,
+      clearSaved: EncounterCalculatorApp._onActionClearSaved,
       removeEntry: EncounterCalculatorApp._onActionRemoveEntry,
       openEncounterDialog:
         EncounterCalculatorApp._onActionOpenEncounterDialog,
@@ -138,6 +142,20 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     }
 
     this.dragDropHandlers = this.#createDragDropHandlers();
+
+    // Autowczytywanie zapisanego zestawu sojuszników (jeśli włączone w ustawieniach)
+    (async () => {
+      try {
+        const auto = game.settings.get(MODULE_ID, "autoLoadSavedAllies");
+        if (auto) {
+          await this._loadSavedFromSettings();
+          // renderujemy z nowymi sojusznikami
+          this.render();
+        }
+      } catch (_e) {
+        // ignore
+      }
+    })();
   }
 
   /**
@@ -165,6 +183,37 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
   _canDragDrop(_selector) {
     return true;
+  }
+
+  /**
+   * Wczytuje zapisane UUIDy sojuszników / drużyny z ustawień świata.
+   * Preferuje `savedAllies`, fallback na `savedTeam`.
+   */
+  async _loadSavedFromSettings() {
+    try {
+      const savedAllies = game.settings.get(MODULE_ID, "savedAllies") || { uuids: [] };
+      const savedTeam = game.settings.get(MODULE_ID, "savedTeam") || { uuids: [] };
+
+      const uuids = Array.isArray(savedAllies.uuids) && savedAllies.uuids.length
+        ? savedAllies.uuids
+        : Array.isArray(savedTeam.uuids) ? savedTeam.uuids : [];
+
+      if (!uuids || !uuids.length) return;
+
+      // Czyścimy obecną lewą stronę i wczytujemy aktorów na nowo
+      this.allies = [];
+
+      for (const uuid of uuids) {
+        try {
+          const actor = await fromUuid(uuid);
+          if (actor) this.#addSingleActorToSide(actor, "allies");
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } catch (e) {
+      console.error(`${MODULE_ID} | Błąd wczytywania zapisu:`, e);
+    }
   }
 
   /**
@@ -1230,6 +1279,74 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       .catch(() => {});
 
     this.render();
+  }
+
+  // ─────────────────────────────────────────────
+  // Save / Load / Clear saved allies/team
+  // ─────────────────────────────────────────────
+  static async _onActionSaveTeam(_event, _target) {
+    // Zapisujemy tylko PC (character) obecnych w lewej kolumnie
+    const pcUuids = (this.allies || [])
+      .filter((a) => a?.type === "character" && a?.uuid)
+      .map((a) => a.uuid);
+
+    const unique = Array.from(new Set(pcUuids));
+
+    await game.settings.set(MODULE_ID, "savedTeam", { uuids: unique });
+    ui.notifications.info("Zapisano drużynę (PC) w ustawieniach świata.");
+  }
+
+  static async _onActionSaveAllies(_event, _target) {
+    // Zapisujemy wszystkich aktorów po lewej stronie (PC + NPC)
+    const allUuids = (this.allies || [])
+      .map((a) => a?.uuid)
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(allUuids));
+
+    await game.settings.set(MODULE_ID, "savedAllies", { uuids: unique });
+    ui.notifications.info("Zapisano sojuszników (PC + NPC) w ustawieniach świata.");
+  }
+
+  static async _onActionLoadSaved(_event, _target) {
+    // Wczytujemy zapis – preferujemy savedAllies, fallback na savedTeam
+    const savedAllies = game.settings.get(MODULE_ID, "savedAllies") || { uuids: [] };
+    const savedTeam = game.settings.get(MODULE_ID, "savedTeam") || { uuids: [] };
+
+    const uuids = Array.isArray(savedAllies.uuids) && savedAllies.uuids.length
+      ? savedAllies.uuids
+      : Array.isArray(savedTeam.uuids) ? savedTeam.uuids : [];
+
+    if (!uuids || !uuids.length) {
+      ui.notifications.info("Brak zapisanego zestawu do wczytania.");
+      return;
+    }
+
+    // Zachowanie: wczytanie działa jak preset – najpierw czyścimy obecną lewą stronę
+    this.allies = [];
+
+    for (const uuid of uuids) {
+      try {
+        const actor = await fromUuid(uuid);
+        if (actor) {
+          this._addSingleActorToSide(actor, "allies");
+        } else {
+          console.warn(`${MODULE_ID} | Nie znaleziono aktora o uuid ${uuid} podczas wczytywania zapisu.`);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    this.render();
+    ui.notifications.info("Wczytano zapis sojuszników.");
+  }
+
+  static async _onActionClearSaved(_event, _target) {
+    // Usuwamy zapisane presety (czyszcząc tablice uuid)
+    await game.settings.set(MODULE_ID, "savedAllies", { uuids: [] });
+    await game.settings.set(MODULE_ID, "savedTeam", { uuids: [] });
+    ui.notifications.info("Usunięto zapis drużyny i sojuszników z ustawień świata.");
   }
 
   /**
