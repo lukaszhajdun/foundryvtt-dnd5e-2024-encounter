@@ -1329,7 +1329,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       try {
         const actor = await fromUuid(uuid);
         if (actor) {
-          this._addSingleActorToSide(actor, "allies");
+          this.#addSingleActorToSide(actor, "allies");
         } else {
           console.warn(`${MODULE_ID} | Nie znaleziono aktora o uuid ${uuid} podczas wczytywania zapisu.`);
         }
