@@ -8,7 +8,7 @@
  *  - EncounterCreateDialog._generateTreasureHoard()
  */
 
-import { applyUserStyles } from "./ui-style.js";
+import { styleDialogRoot } from "../services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
   foundry.applications.api;
@@ -93,7 +93,7 @@ export class TreasureChoiceDialog extends HandlebarsApplicationMixin(
     if (!root) return;
 
     // Ujednolicamy styl z kalkulatorem i popupem encountera.
-    applyUserStyles(root);
+    styleDialogRoot(root);
   }
 
   // ─────────────────────────────────────────────

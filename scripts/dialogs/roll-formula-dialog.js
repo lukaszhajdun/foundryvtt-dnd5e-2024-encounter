@@ -4,7 +4,13 @@
 // scripts/roll-formula-dialog.js
 // scripts/roll-formula-dialog.js
 
-import { applyUserStyles } from "./ui-style.js";
+import {
+  styleDialogRoot,
+  bindDialogButton,
+  validateRollFormula,
+  getInputValue,
+  resolveAndCloseDialog
+} from "../services/index.js";
 
 // Wyciągamy ApplicationV2 i HandlebarsApplicationMixin z API Foundry 13+
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -111,24 +117,18 @@ export class RollFormulaDialog extends HandlebarsApplicationMixin(ApplicationV2)
     if (!root) return;
 
     // Nałóż ten sam styl użytkownika, co na główne okno kalkulatora i popup encountera
-    applyUserStyles(root);
+    styleDialogRoot(root);
 
     const rollButton = root.querySelector('[data-action="roll"]');
     const cancelButton = root.querySelector('[data-action="cancel"]');
 
-    if (rollButton && !rollButton.dataset.boundRoll) {
-      rollButton.addEventListener("click", (event) =>
-        this.#onClickRoll(event)
-      );
-      rollButton.dataset.boundRoll = "true";
-    }
+    bindDialogButton(rollButton, "boundRoll", "click", (event) =>
+      this.#onClickRoll(event)
+    );
 
-    if (cancelButton && !cancelButton.dataset.boundCancel) {
-      cancelButton.addEventListener("click", (event) =>
-        this.#onClickCancel(event)
-      );
-      cancelButton.dataset.boundCancel = "true";
-    }
+    bindDialogButton(cancelButton, "boundCancel", "click", (event) =>
+      this.#onClickCancel(event)
+    );
   }
 
 
@@ -141,33 +141,24 @@ export class RollFormulaDialog extends HandlebarsApplicationMixin(ApplicationV2)
    * Pobiera aktualną formułę z inputu w oknie.
    */
   #getFormula() {
-    const input = this.element?.querySelector('input[name="formula"]');
-    return input?.value?.trim() ?? "";
+    return getInputValue(this.element, 'input[name="formula"]');
   }
 
   /**
    * Obsługa kliknięcia "Rzuć".
-   *  - Waliduje formułę przy pomocy Roll.validate
+   *  - Waliduje formułę przy pomocy validateRollFormula
    *  - Zwraca ją do wywołującego (EncounterCreateDialog) przez this.#resolve
    */
   #onClickRoll(event) {
     event.preventDefault();
 
     const formula = this.#getFormula();
-    if (!formula) {
-      ui.notifications.warn("Podaj formułę rzutu kośćmi.");
-      return;
-    }
-
-    // Walidacja formuły – Foundry 13 obsługuje złożone wyrażenia (nawiasy, mnożenie, itp.).
-    if (!Roll.validate(formula)) {
-      ui.notifications.error("Nieprawidłowa formuła rzutu.");
+    if (!validateRollFormula(formula)) {
       return;
     }
 
     // Zwracamy formułę do kodu wywołującego
-    this.#resolve({ formula });
-    this.close();
+    resolveAndCloseDialog(this.#resolve, { formula }, this);
   }
 
   /**
@@ -175,7 +166,6 @@ export class RollFormulaDialog extends HandlebarsApplicationMixin(ApplicationV2)
    */
   #onClickCancel(event) {
     event.preventDefault();
-    this.#resolve(null);
-    this.close();
+    resolveAndCloseDialog(this.#resolve, null, this);
   }
 }

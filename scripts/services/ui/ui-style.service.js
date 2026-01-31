@@ -1,4 +1,4 @@
-// scripts/ui-style.js
+// scripts/services/ui/ui-style.service.js
 
 /**
  * Nakładanie stylu okna (kolory, skala fontu, tryb dostępności).
@@ -9,9 +9,9 @@ import {
   MODULE_ID,
   DEFAULT_BG_COLOR,
   DEFAULT_TEXT_COLOR,
-  DEFAULT_FONT_SCALE,
-  COLOR_PRESETS
-} from "./config.js";
+  DEFAULT_FONT_SCALE
+} from "../../config/constants.js";
+import { COLOR_PRESETS } from "../../config/presets.js";
 
 /**
  * Zastosuj ustawienia stylu na podanym elemencie root aplikacji.
