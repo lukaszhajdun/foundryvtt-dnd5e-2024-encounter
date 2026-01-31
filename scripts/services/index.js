@@ -3,24 +3,22 @@
  *
  * Eksportuje wszystkie serwisy w stylu single file response,
  * aby UI mogło importować je z jednego miejsca.
+ *
+ * Struktura:
+ * - core/       - Core logic (difficulty, state, settings, actor factory)
+ * - ui/         - UI helpers (dialogs, DOM, forms, callbacks)
+ * - data/       - Data processing (loot, treasure, currency, items)
+ * - import-export/ - Import/export functionality (allies, encounters, groups)
  */
+
+// ═══════════════════════════════════════════════════════════════
+// CORE SERVICES
+// ═══════════════════════════════════════════════════════════════
 
 export {
   calculateDifficulty,
   normalizeEnemyQuantities
-} from "./difficulty-calculator.service.js";
-
-export {
-  aggregateLootFromEnemies,
-  getItemGoldValue
-} from "./loot-aggregator.service.js";
-
-export {
-  generateIndividualTreasure,
-  generateTreasureHoard,
-  getIndividualTreasureConfig,
-  getTreasureHoardConfig
-} from "./treasure-generator.service.js";
+} from "./core/difficulty-calculator.service.js";
 
 export {
   getTargetDifficulty,
@@ -38,12 +36,23 @@ export {
   getEncounterDefaultGold,
   getEncounterDefaultSilver,
   getEncounterDefaultCopper
-} from "./settings-repository.service.js";
+} from "./core/settings-repository.service.js";
 
 export {
   createEncounterActor,
   ensureActorFolder
-} from "./encounter-actor-factory.service.js";
+} from "./core/encounter-actor-factory.service.js";
+
+export {
+  getActorXp,
+  removeEntryFromList,
+  addSingleActorToSide,
+  updateEnemyQuantity
+} from "./core/encounter-state.service.js";
+
+// ═══════════════════════════════════════════════════════════════
+// UI SERVICES
+// ═══════════════════════════════════════════════════════════════
 
 export {
   formatPlainTextToHtml,
@@ -51,22 +60,7 @@ export {
   bindOnceAll,
   bindOnceMulti,
   bindOnceAllMulti
-} from "./ui-helpers.service.js";
-
-export {
-  getActorXp,
-  removeEntryFromList,
-  addSingleActorToSide,
-  updateEnemyQuantity
-} from "./encounter-state.service.js";
-
-export {
-  importGroupMembers
-} from "./group-import.service.js";
-
-export {
-  importEncounterActor
-} from "./encounter-import.service.js";
+} from "./ui/ui-helpers.service.js";
 
 export {
   formatCurrencyValue,
@@ -82,37 +76,19 @@ export {
   validateEnemiesQuantities,
   computeItemsGoldValue,
   buildCurrencyContext
-} from "./form-components.service.js";
+} from "./ui/form-components.service.js";
+
 export {
   getDefaultDragDropCallbacks,
   prepareDragDropConfig
-} from "./callback-factory.service.js";
-
-export {
-  getPcUuids,
-  getAllyUuids
-} from "./ally-serializer.service.js";
+} from "./ui/callback-factory.service.js";
 
 export {
   queryCurrencyInputs,
   queryFormTextInputs,
   queryItemElements,
   queryItemField
-} from "./dom-helpers.service.js";
-
-export {
-  getCurrencyLabel,
-  getCurrencyLabels,
-  rollCurrencyFormula,
-  getCurrencySetterMap,
-  setCurrencyValue
-} from "./currency-roller.service.js";
-
-export {
-  removeItemById,
-  updateItemQuantity,
-  validateItemQuantity
-} from "./item-quantity.service.js";
+} from "./ui/dom-helpers.service.js";
 
 export {
   styleDialogRoot,
@@ -122,4 +98,51 @@ export {
   getInputValue,
   resolveAndCloseDialog,
   createDialogActionHandler
-} from "./dialog-helpers.service.js";
+} from "./ui/dialog-helpers.service.js";
+
+// ═══════════════════════════════════════════════════════════════
+// DATA SERVICES
+// ═══════════════════════════════════════════════════════════════
+
+export {
+  aggregateLootFromEnemies,
+  getItemGoldValue
+} from "./data/loot-aggregator.service.js";
+
+export {
+  generateIndividualTreasure,
+  generateTreasureHoard,
+  getIndividualTreasureConfig,
+  getTreasureHoardConfig
+} from "./data/treasure-generator.service.js";
+
+export {
+  getCurrencyLabel,
+  getCurrencyLabels,
+  rollCurrencyFormula,
+  getCurrencySetterMap,
+  setCurrencyValue
+} from "./data/currency-roller.service.js";
+
+export {
+  removeItemById,
+  updateItemQuantity,
+  validateItemQuantity
+} from "./data/item-quantity.service.js";
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORT/EXPORT SERVICES
+// ═══════════════════════════════════════════════════════════════
+
+export {
+  importGroupMembers
+} from "./import-export/group-import.service.js";
+
+export {
+  importEncounterActor
+} from "./import-export/encounter-import.service.js";
+
+export {
+  getPcUuids,
+  getAllyUuids
+} from "./import-export/ally-serializer.service.js";
