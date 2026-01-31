@@ -1,4 +1,4 @@
-﻿/**
+/**
  * EncounterCalculatorApp – główne okno kalkulatora starć.
  *
  * Odpowiada za:
@@ -19,8 +19,7 @@ import {
 } from "./config.js";
 import {
   calculateDifficulty,
-  normalizeEnemyQuantities,
-  aggregateLootFromEnemies
+  normalizeEnemyQuantities
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -560,6 +559,229 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
   }
 
   /**
+   * Upewnia się, że ilości wrogów (quantity) są między 1 i 99
+   * oraz że totalXp jest przeliczone zgodnie z xp * quantity.
+   */
+  #normalizeEnemyQuantities() {
+    for (const enemy of this.enemies) {
+      const baseXp = Number(enemy.xp) || 0;
+      let q = Number(enemy.quantity ?? 1) || 1;
+
+      if (q < 1) q = 1;
+      if (q > 99) q = 99;
+
+      enemy.quantity = q;
+      enemy.totalXp = baseXp * q;
+    }
+  }
+
+  /**
+   * Liczenie budżetu i trudności encountera.
+   *
+   * - Budżet XP (docelowy) zależy od wybranego progu (Niska / Umiarkowana / Wysoka).
+   * - „Trudność względem budżetu” jest wyliczana na dwa sposoby:
+   *    • klasyczny DMG – wg progów low/moderate/high (ustawienie: Klasyczny DMG),
+   *    • względem wybranego budżetu docelowego (ustawienie: Względem budżetu).
+   */
+  #calculateDifficulty() {
+    const partyMembers = [];
+    const allyNpcWeight = this.#getAllyNpcWeight();
+
+    // Składamy „logicznych członków drużyny”:
+    // - PC o konkretnym poziomie,
+    // - sojuszniczych NPC jako pseudo-poziomy (z wagą allyNpcWeight).
+    for (const ally of this.allies) {
+      if (ally.type === "character") {
+        const level = Number(ally.level) || 1;
+        partyMembers.push({
+          level,
+          weight: 1.0,
+          source: "pc"
+        });
+      }
+
+      if (ally.type === "npc") {
+        const npcXp = Number(ally.xp) || 0;
+        if (npcXp <= 0) continue;
+        const pseudoLevel = getPseudoLevelForNpcXp(
+          npcXp,
+          "moderate"
+        );
+        partyMembers.push({
+          level: pseudoLevel,
+          weight: allyNpcWeight,
+          source: "ally-npc"
+        });
+      }
+    }
+
+    // Liczymy całkowite XP wrogów.
+    const totalXP = this.enemies.reduce(
+      (sum, e) =>
+        sum +
+        (Number(
+          e.totalXp ??
+            (Number(e.xp) || 0) * (Number(e.quantity ?? 1) || 1)
+        ) || 0),
+      0
+    );
+
+    if (!partyMembers.length) {
+      return {
+        label: "Brak drużyny",
+        targetLabel: "-",
+        budget: 0,
+        totalXP
+      };
+    }
+
+    // Budżety dla całej drużyny na trzy progi.
+    const budgets = this.#xpBudgetsForParty(partyMembers);
+
+    // Wybrany próg z UI (Niska / Umiarkowana / Wysoka).
+    let targetDifficulty = this.targetDifficultyKey;
+    if (!["low", "moderate", "high"].includes(targetDifficulty)) {
+      targetDifficulty = "moderate";
+    }
+
+    const budget = budgets[targetDifficulty] ?? 0;
+
+    // Tryb wyświetlania trudności (z ustawień modułu).
+    let mode = this.difficultyDisplayMode;
+    try {
+      const stored = game.settings.get(
+        MODULE_ID,
+        "difficultyDisplayMode"
+      );
+      if (stored === "budget" || stored === "dmg") {
+        mode = stored;
+        this.difficultyDisplayMode = stored;
+      }
+    } catch (_e) {
+      // jeśli nie ma ustawienia, zostawiamy bieżące
+    }
+
+    if (mode !== "budget" && mode !== "dmg") {
+      mode = "dmg";
+      this.difficultyDisplayMode = "dmg";
+    }
+
+    let label;
+    if (mode === "budget") {
+      // Trudność względem WYBRANEGO budżetu (a nie stałych progów).
+      label = this.#labelRelativeToBudget(totalXP, budget);
+    } else {
+      // Klasyczna trudność DMG – wg progów low/moderate/high.
+      label = this.#labelClassicDmg(totalXP, budgets);
+    }
+
+    return {
+      label,
+      targetLabel: this.#difficultyName(targetDifficulty),
+      budget,
+      totalXP
+    };
+  }
+
+  /**
+   * Zwraca czytelną nazwę progu trudności (do „Budowane pod trudność”).
+   */
+  #difficultyName(diffKey) {
+    switch (diffKey) {
+      case "low":
+        return "Niską";
+      case "moderate":
+        return "Umiarkowaną";
+      case "high":
+        return "Wysoką";
+      default:
+        return diffKey;
+    }
+  }
+
+  /**
+   * Sumuje budżety XP dla całej drużyny (poziomy + wagi).
+   */
+  #xpBudgetsForParty(partyMembers) {
+    const totals = {
+      low: 0,
+      moderate: 0,
+      high: 0
+    };
+
+    for (const member of partyMembers) {
+      const row = getBudgetRowForLevel(member.level);
+      const weight = Number(member.weight) || 1.0;
+
+      totals.low += row.low * weight;
+      totals.moderate += row.moderate * weight;
+      totals.high += row.high * weight;
+    }
+
+    return {
+      low: Math.round(totals.low),
+      moderate: Math.round(totals.moderate),
+      high: Math.round(totals.high)
+    };
+  }
+
+  /**
+   * Klasyczna trudność wg DMG:
+   *  - totalXP <= low      → „Niskie”
+   *  - <= moderate         → „Umiarkowane”
+   *  - <= high             → „Wysokie”
+   *  - > high              → „Ekstremalne”
+   */
+  #labelClassicDmg(totalXP, budgets) {
+    if (!totalXP) return "Brak wrogów";
+    if (!budgets) return "Brak budżetu";
+
+    const low = Number(budgets.low ?? 0) || 0;
+    const moderate = Number(budgets.moderate ?? 0) || 0;
+    const high = Number(budgets.high ?? 0) || 0;
+
+    if (low <= 0 && moderate <= 0 && high <= 0) {
+      return "Brak budżetu";
+    }
+
+    if (totalXP <= low) return "Niskie";
+    if (totalXP <= moderate) return "Umiarkowane";
+    if (totalXP <= high) return "Wysokie";
+    return "Ekstremalne";
+  }
+
+  /**
+   * Trudność względem wybranego budżetu docelowego.
+   *
+   * - totalXP – suma XP wrogów,
+   * - budget  – budżet XP dla wybranego progu (Niska / Umiarkowana / Wysoka).
+   *
+   * Zwraca etykiety w stylu:
+   *  - „Brak wrogów”
+   *  - „Brak budżetu”
+   *  - „Poniżej budżetu”
+   *  - „W zakresie budżetu”
+   *  - „Powyżej budżetu”
+   *  - „Znacznie powyżej budżetu”
+   */
+  #labelRelativeToBudget(totalXP, budget) {
+    if (!totalXP) return "Brak wrogów";
+    if (!budget) return "Brak budżetu";
+
+    const ratio = totalXP / budget;
+
+    // Progi można później doprecyzować; obecnie:
+    // < 0.75    → poniżej
+    // 0.75–1.25 → w zakresie
+    // 1.25–1.75 → powyżej
+    // > 1.75    → znacznie powyżej
+    if (ratio < 0.75) return "Poniżej budżetu";
+    if (ratio <= 1.25) return "W zakresie budżetu";
+    if (ratio <= 1.75) return "Powyżej budżetu";
+    return "Znacznie powyżej budżetu";
+  }
+
+  /**
    * Auto-loot: zbiera przedmioty z ekwipunku wszystkich wrogów
    * z kalkulatora, aby wypełnić zakładkę "Przedmioty" w popupie.
    *
@@ -604,11 +826,180 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       // jeśli brak ustawienia – zostawiamy domyślne "perEnemy"
     }
 
-    return aggregateLootFromEnemies({
-      enemies: this.enemies,
-      mode,
-      actorResolver: fromUuid
-    });
+    // Tryb "off" – nie generujemy żadnych przedmiotów.
+    if (mode === "off") return [];
+
+    if (!Array.isArray(this.enemies) || !this.enemies.length) {
+      return [];
+    }
+
+    // Zamiast zwykłej tablicy używamy Map – kluczem jest uuid itemu,
+    // wartością – zgrupowany wpis z ilością (quantity).
+    const grouped = new Map();
+
+    // Zbiór typów itemów, które traktujemy jako „loot”.
+    const lootTypes = new Set([
+      "weapon",
+      "equipment",
+      "armor",
+      "consumable",
+      "loot",
+      "tool",
+      "container",
+      "gear"
+    ]);
+
+    for (const enemy of this.enemies) {
+      const enemyUuid = enemy.uuid;
+      if (!enemyUuid) continue;
+
+      const enemyActor = await fromUuid(enemyUuid);
+      if (!enemyActor || enemyActor.documentName !== "Actor") continue;
+
+      const items = enemyActor.items ?? [];
+      if (!items.size && !items.length) continue;
+
+      // Określamy ile razy powielić ekwipunek tego wroga.
+      // perEnemy     → ilość = quantity wroga,
+      // perActorType → 1 komplet ekwipunku na wpis enemy.
+      let repeats = 1;
+      if (mode === "perEnemy") {
+        let q = Number(enemy.quantity ?? 1) || 1;
+        if (q < 1) q = 1;
+        if (q > 99) q = 99;
+        repeats = q;
+      } else {
+        repeats = 1;
+      }
+
+      for (const item of items) {
+        // Bierzemy tylko typy, które traktujemy jako „loot”
+        if (!lootTypes.has(item.type)) continue;
+
+        // ─────────────────────────────────────
+        // POMIŃ BROŃ NATURALNĄ
+        // ─────────────────────────────────────
+        //
+        // W systemie dnd5e 2024 naturalna broń ma strukturę:
+        //  item.type === "weapon"
+        //  item.system.type.value === "natural"
+        //
+        // Dodatkowo asekuracyjnie sprawdzamy tablicę properties,
+        // gdyby system dorzucał tam etykiety typu "natural" / "nat".
+        const sys = item.system ?? {};
+        const typeData = sys.type ?? {};
+        const weaponType = (typeData.value ?? "")
+          .toString()
+          .toLowerCase();
+
+        const propsArray = Array.isArray(sys.properties)
+          ? sys.properties
+          : [];
+
+        // W niektórych wersjach właściwości mogą być stringami
+        // albo obiektami z polem "value" – normalizujemy do stringa.
+        const hasNaturalProperty = propsArray.some((p) => {
+          const raw = typeof p === "string" ? p : p?.value;
+          if (!raw) return false;
+          const key = raw.toString().toLowerCase();
+          return key === "natural" || key === "nat";
+        });
+
+        const isNaturalWeapon =
+          item.type === "weapon" &&
+          (weaponType === "natural" || hasNaturalProperty);
+
+        if (isNaturalWeapon) {
+          // Pomijamy naturalną broń – to wbudowany atak potwora,
+          // nie realny łup.
+          continue;
+        }
+
+        // ─────────────────────────────────────
+        // DALSZA LOGIKA GRUPOWANIA ITEMÓW
+        // ─────────────────────────────────────
+
+        const priceGp = this.#getItemGoldValueFromDocument(item);
+        const key = item.uuid;
+        if (!key) continue;
+
+        const count = repeats;
+
+        const existing = grouped.get(key);
+        if (existing) {
+          const newQty = Math.min(
+            99,
+            (Number(existing.quantity ?? 1) || 1) + count
+          );
+          existing.quantity = newQty;
+          continue;
+        }
+
+        grouped.set(key, {
+          _id: foundry.utils.randomID(),
+          uuid: item.uuid,
+          name: item.name,
+          type: item.type,
+          img: item.img,
+          price: priceGp,
+          quantity: Math.min(99, count)
+        });
+      }
+
+
+    }
+
+    // Zwracamy zgrupowane wpisy jako zwykłą tablicę.
+    return Array.from(grouped.values());
+  }
+
+  /**
+   * Pomocnicza funkcja – wylicza wartość itemu w złocie (GP)
+   * na podstawie item.system.price.
+   *
+   * Logika jest spójna z EncounterCreateDialog._getItemGoldValueFromDocument,
+   * aby wartości w obu miejscach były liczone w ten sam sposób.
+   */
+  #getItemGoldValueFromDocument(item) {
+    const priceData = item?.system?.price;
+
+    if (priceData == null) return 0;
+
+    // Przypadek 1: stary format – price jest liczbą, traktujemy jako GP.
+    if (typeof priceData === "number") {
+      const value = Number(priceData) || 0;
+      return value;
+    }
+
+    // Przypadek 2: nowy format – obiekt z value i denomination.
+    if (typeof priceData === "object") {
+      const value = Number(priceData.value ?? 0) || 0;
+      const denom =
+        (priceData.denomination ??
+          priceData.currency ??
+          "gp").toLowerCase();
+
+      if (!value) return 0;
+
+      switch (denom) {
+        case "pp":
+          return value * 10;
+        case "gp":
+          return value;
+        case "ep":
+          return value * 0.5;
+        case "sp":
+          return value * 0.1;
+        case "cp":
+          return value * 0.01;
+        default:
+          // Nieznana denominacja – traktujemy jako GP.
+          return value;
+      }
+    }
+
+    // Gdy format jest inny / nieznany – traktujemy jako 0.
+    return 0;
   }
 
   /**
