@@ -92,3 +92,25 @@ export {
   getPcUuids,
   getAllyUuids
 } from "./ally-serializer.service.js";
+
+export {
+  queryCurrencyInputs,
+  queryFormTextInputs,
+  queryItemElements,
+  queryItemField
+} from "./dom-helpers.service.js";
+
+export {
+  getCurrencyLabel,
+  getCurrencyLabels,
+  rollCurrencyFormula,
+  getCurrencySetterMap,
+  setCurrencyValue
+} from "./currency-roller.service.js";
+
+export {
+  removeItemById,
+  updateItemQuantity,
+  validateItemQuantity
+} from "./item-quantity.service.js";
+

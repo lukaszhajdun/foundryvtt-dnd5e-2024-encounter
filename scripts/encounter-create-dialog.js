@@ -46,7 +46,15 @@ import {
   bindOnceAllMulti,
   formatCurrencyValue,
   formatGoldEquivalent,
-  normalizeNumberInput
+  normalizeNumberInput,
+  queryCurrencyInputs,
+  queryFormTextInputs,
+  getCurrencyLabel,
+  rollCurrencyFormula,
+  setCurrencyValue,
+  removeItemById,
+  updateItemQuantity,
+  validateItemQuantity
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -430,32 +438,21 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
       };
     }
 
-    const nameInput = root.querySelector('input[name="encounterName"]');
-    const summaryInput = root.querySelector('textarea[name="encounterSummary"]');
-    const descInput = root.querySelector(
-      'textarea[name="encounterDescription"]'
-    );
-    const useFolderInput = root.querySelector('input[name="useFolder"]');
-    const folderInput = root.querySelector('input[name="folderName"]');
+    // Użyj dom-helpers
+    const textInputs = queryFormTextInputs(root);
+    const currencyInputs = queryCurrencyInputs(root);
 
-    const platinumInput = root.querySelector('input[name="platinum"]');
-    const goldInput = root.querySelector('input[name="gold"]');
-    const silverInput = root.querySelector('input[name="silver"]');
-    const copperInput = root.querySelector('input[name="copper"]');
-    const electrumInput = root.querySelector('input[name="electrum"]');
+    const name = (textInputs.name?.value ?? "").toString().trim();
+    const summary = textInputs.summary?.value?.toString() ?? "";
+    const description = textInputs.description?.value?.toString() ?? "";
+    const useFolder = textInputs.useFolder?.checked ?? true;
+    const folderName = (textInputs.folderName?.value ?? "").toString().trim();
 
-    const name = (nameInput?.value ?? "").toString().trim();
-    const summary = summaryInput?.value?.toString() ?? "";
-    const description = descInput?.value?.toString() ?? "";
-
-    const useFolder = useFolderInput?.checked ?? true;
-    const folderName = (folderInput?.value ?? "").toString().trim();
-
-    const platinum = normalizeNumberInput(platinumInput?.value, 0);
-    const gold = normalizeNumberInput(goldInput?.value, 0);
-    const silver = normalizeNumberInput(silverInput?.value, 0);
-    const copper = normalizeNumberInput(copperInput?.value, 0);
-    const electrum = normalizeNumberInput(electrumInput?.value, 0);
+    const platinum = normalizeNumberInput(currencyInputs.platinum?.value, 0);
+    const gold = normalizeNumberInput(currencyInputs.gold?.value, 0);
+    const silver = normalizeNumberInput(currencyInputs.silver?.value, 0);
+    const copper = normalizeNumberInput(currencyInputs.copper?.value, 0);
+    const electrum = normalizeNumberInput(currencyInputs.electrum?.value, 0);
 
     this._name = name || DEFAULT_ENCOUNTER_NAME;
     this._summary = summary;
@@ -556,26 +553,8 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    */
   _updateItemQuantity(itemId, mode, value) {
     if (!Array.isArray(this._items)) this._items = [];
-    const entry = this._items.find((it) => it._id === itemId);
-    if (!entry) return;
-
-    let q = Number(entry.quantity ?? 1) || 1;
-
-    if (mode === "delta") {
-      q += value;
-    } else if (mode === "set") {
-      q = value;
-    }
-
-    if (q <= 0) {
-      this._items = this._items.filter((it) => it._id !== itemId);
-      return;
-    }
-
-    if (q < 1) q = 1;
-    if (q > MAX_ITEM_QUANTITY) q = MAX_ITEM_QUANTITY;
-
-    entry.quantity = q;
+    const result = updateItemQuantity(this._items, itemId, mode, value);
+    this._items = result.items;
   }
 
   /**
@@ -589,22 +568,16 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     const raw = input.value;
     let parsed = Number(raw);
 
-    if (!Number.isFinite(parsed)) {
-      const entry = this._items.find((it) => it._id === itemId);
-      const currentQ = Number(entry?.quantity ?? 1) || 1;
-      input.value = String(currentQ);
-      return;
-    }
+    const validation = validateItemQuantity(parsed, this._items, itemId);
+    input.value = String(validation.normalized);
 
-    if (parsed <= 0) {
-      this._items = this._items.filter((it) => it._id !== itemId);
+    if (validation.shouldRemove) {
+      this._items = removeItemById(this._items, itemId);
       this.render();
       return;
     }
 
-    if (parsed > MAX_ITEM_QUANTITY) parsed = MAX_ITEM_QUANTITY;
-
-    this._updateItemQuantity(itemId, "set", parsed);
+    this._updateItemQuantity(itemId, "set", validation.normalized);
     this.render();
   }
 
@@ -727,7 +700,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     if (!itemId) return;
 
     if (!Array.isArray(this._items)) this._items = [];
-    this._items = this._items.filter((it) => it._id !== itemId);
+    this._items = removeItemById(this._items, itemId);
 
     this.render();
   }
@@ -886,15 +859,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     const currencyKey = button.dataset.currency;
     if (!currencyKey) return;
 
-    const labelMap = {
-      platinum: "platyny (PP)",
-      gold: "złota (GP)",
-      silver: "srebra (SP)",
-      copper: "miedzi (CP)",
-      electrum: "electrum (EP)"
-    };
-
-    const prettyLabel = labelMap[currencyKey] ?? currencyKey;
+    const prettyLabel = getCurrencyLabel(currencyKey);
 
     const result = await new Promise((resolve) => {
       const dialog = new RollFormulaDialog({
@@ -907,51 +872,23 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
 
     if (!result || !result.formula) return;
 
-    const formula = result.formula;
-
-    let roll;
+    let total;
     try {
-      const r = new Roll(formula);
-      await r.evaluate();
-      roll = r;
+      total = await rollCurrencyFormula(result.formula);
     } catch (error) {
-      console.error(
-        "[EncounterCreateDialog] Błąd parsowania formuły rzutu:",
-        error
-      );
+      console.error("[EncounterCreateDialog] Błąd rzutu:", error);
       ui.notifications.error("Nieprawidłowa formuła rzutu.");
       return;
     }
 
-    const total = Math.max(0, Math.floor(roll.total ?? 0));
+    // Aktualizuj zarówno this._XXX jak i DOM
+    setCurrencyValue(this, currencyKey, total);
 
-    switch (currencyKey) {
-      case "platinum":
-        this._platinum = total;
-        break;
-      case "gold":
-        this._gold = total;
-        break;
-      case "silver":
-        this._silver = total;
-        break;
-      case "copper":
-        this._copper = total;
-        break;
-      case "electrum":
-        this._electrum = total;
-        break;
-      default:
-        return;
-    }
+    // Wyślij wiadomość o rzucie do chatu
+    const r = new Roll(result.formula);
+    await r.evaluate();
 
-    const root = this.element;
-    const input = root?.querySelector(`input[name="${currencyKey}"]`);
-    if (input) {
-      input.value = String(total);
-    }
-
-    roll.toMessage({
+    r.toMessage({
       speaker: ChatMessage.getSpeaker(),
       flavor: `Losowanie waluty (${prettyLabel}) dla encountera "${
         this._name ?? ""
