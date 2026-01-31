@@ -1,2 +1,5 @@
 .DS_Store
 Thumbs.db
+# Pliki robocze / review
+REVIEW.md
+*.backup
