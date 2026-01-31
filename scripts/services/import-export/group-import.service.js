@@ -2,8 +2,8 @@
  * Group Import – obsługa importu członków z aktora typu "group".
  */
 
-import { addSingleActorToSide } from "./encounter-state.service.js";
-import { getActorXp } from "./encounter-state.service.js";
+import { addSingleActorToSide } from "../core/encounter-state.service.js";
+import { getActorXp } from "../core/encounter-state.service.js";
 
 /**
  * Dodaje członków aktora typu "group" po wskazanej stronie.

@@ -5,7 +5,7 @@
  * Wyodrębnia logikę quantity z encounter-create-dialog.
  */
 
-import { MAX_ITEM_QUANTITY } from "../config/constants.js";
+import { MAX_ITEM_QUANTITY } from "../../config/constants.js";
 
 /**
  * Usuwa przedmiot o danym ID z listy.

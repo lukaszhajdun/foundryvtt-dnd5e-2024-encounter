@@ -8,8 +8,8 @@
  *  - uruchamianie renderu karty po utworzeniu.
  */
 
-import { MODULE_ID } from "../config/constants.js";
-import { formatPlainTextToHtml } from "./ui-helpers.service.js";
+import { MODULE_ID } from "../../config/constants.js";
+import { formatPlainTextToHtml } from "../ui/ui-helpers.service.js";
 
 /**
  * Tworzy aktora encounter typu "encounter".

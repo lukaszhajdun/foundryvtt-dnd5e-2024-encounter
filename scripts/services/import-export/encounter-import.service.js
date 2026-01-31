@@ -2,8 +2,8 @@
  * Encounter Import – import aktora encounter do kalkulatora.
  */
 
-import { addSingleActorToSide } from "./encounter-state.service.js";
-import { getActorXp } from "./encounter-state.service.js";
+import { addSingleActorToSide } from "../core/encounter-state.service.js";
+import { getActorXp } from "../core/encounter-state.service.js";
 
 /**
  * Importuje aktora encounter do kalkulatora (po stronie enemies).

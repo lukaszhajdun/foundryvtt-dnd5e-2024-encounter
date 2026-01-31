@@ -11,7 +11,7 @@
  * z obsługą błędów i wartościami domyślnymi.
  */
 
-import { MODULE_ID } from "../config/constants.js";
+import { MODULE_ID } from "../../config/constants.js";
 
 /**
  * Tworzy getter dla ustawienia.
