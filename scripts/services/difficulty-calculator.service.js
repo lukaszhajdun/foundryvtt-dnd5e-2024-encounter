@@ -15,7 +15,7 @@ import {
   getBudgetRowForLevel,
   getPseudoLevelForNpcXp
 } from "../data/xp-budget-2024.js";
-import { DEFAULT_ALLY_NPC_WEIGHT } from "../config.js";
+import { DEFAULT_ALLY_NPC_WEIGHT } from "../config/constants.js";
 
 /**
  * Normalizuje ilości wrogów (quantity) do zakresu 1–99.

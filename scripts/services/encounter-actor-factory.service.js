@@ -8,7 +8,7 @@
  *  - uruchamianie renderu karty po utworzeniu.
  */
 
-import { MODULE_ID } from "../config.js";
+import { MODULE_ID } from "../config/constants.js";
 import { formatPlainTextToHtml } from "./ui-helpers.service.js";
 
 /**

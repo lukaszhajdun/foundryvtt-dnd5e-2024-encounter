@@ -29,7 +29,7 @@ import {
   DEFAULT_ENCOUNTER_SILVER,
   DEFAULT_ENCOUNTER_COPPER,
   MAX_ITEM_QUANTITY
-} from "../config.js";
+} from "../config/constants.js";
 import { applyUserStyles } from "../ui-style.js";
 import { RollFormulaDialog } from "./roll-formula-dialog.js";
 import { TreasureChoiceDialog } from "./treasure-choice-dialog.js";

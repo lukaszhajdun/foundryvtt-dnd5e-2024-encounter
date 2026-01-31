@@ -18,9 +18,9 @@ import {
   DEFAULT_ENCOUNTER_FOLDER_NAME,
   DEFAULT_ENCOUNTER_GOLD,
   DEFAULT_ENCOUNTER_SILVER,
-  DEFAULT_ENCOUNTER_COPPER,
-  COLOR_PRESETS
-} from "./config.js";
+  DEFAULT_ENCOUNTER_COPPER
+} from "./config/constants.js";
+import { COLOR_PRESETS } from "./config/presets.js";
 
 /**
  * Mapa konfiguracji wszystkich ustawień modułu.

@@ -8,7 +8,7 @@
  *  - dodajemy przycisk w Scene Controls.
  */
 
-import { MODULE_ID } from "./config.js";
+import { MODULE_ID } from "./config/constants.js";
 import { registerModuleSettings } from "./settings.js";
 import { EncounterCalculatorApp } from "./encounter-calculator-app.js";
 
