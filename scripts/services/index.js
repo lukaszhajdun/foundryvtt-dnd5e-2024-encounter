@@ -67,3 +67,19 @@ export {
 export {
   importEncounterActor
 } from "./encounter-import.service.js";
+
+export {
+  formatCurrencyValue,
+  formatGoldEquivalent,
+  normalizeNumberInput,
+  validateCurrencyField,
+  validateQuantity,
+  createCurrencyFieldId,
+  sanitizeTextInput,
+  computeTotalValue,
+  buildCurrencyOptions,
+  buildFolderOptions,
+  validateEnemiesQuantities,
+  computeItemsGoldValue,
+  buildCurrencyContext
+} from "./form-components.service.js";

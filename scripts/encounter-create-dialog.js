@@ -42,7 +42,10 @@ import {
   getEncounterDefaultSilver,
   getEncounterDefaultCopper,
   bindOnceAll,
-  bindOnceAllMulti
+  bindOnceAllMulti,
+  formatCurrencyValue,
+  formatGoldEquivalent,
+  normalizeNumberInput
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -196,22 +199,20 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
       this._autoLootInitialized = true;
     }
 
-    // 5) Funkcja pomocnicza do formatowania wartości GP w stopce:
-    //    - zaokrąglamy do 2 miejsc po przecinku,
-    //    - zawsze pokazujemy 2 miejsca (toFixed(2)).
-    const formatGold = (value) => {
-      const v = Number(value ?? 0);
-      const rounded = Math.round(v * 100) / 100;
-      return rounded.toFixed(2);
-    };
-
-    const currencyGoldValue = this._computeCurrencyGoldValue();
+    // 5) Obliczamy wartości waluty i przedmiotów za pomocą serwisu.
+    const currencyGoldValue = formatGoldEquivalent(
+      this._platinum,
+      this._gold,
+      this._electrum,
+      this._silver,
+      this._copper
+    );
     const itemsGoldValue = this._computeItemsGoldValue();
     const totalEncounterValue = currencyGoldValue + itemsGoldValue;
 
-    const totalGoldGpFormatted = formatGold(currencyGoldValue);
-    const itemsGoldValueFormatted = formatGold(itemsGoldValue);
-    const totalEncounterValueFormatted = formatGold(totalEncounterValue);
+    const totalGoldGpFormatted = formatCurrencyValue(currencyGoldValue);
+    const itemsGoldValueFormatted = formatCurrencyValue(itemsGoldValue);
+    const totalEncounterValueFormatted = formatCurrencyValue(totalEncounterValue);
 
     // 6) Zwracamy obiekt kontekstu dla szablonu HBS.
     return {
@@ -337,21 +338,16 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
 
   /**
    * Przelicza całą walutę encountera na złoto (GP) jako wartość liczbową.
+   * Deleguje do serwisu form-components.
    */
   _computeCurrencyGoldValue() {
-    const pp = Number(this._platinum ?? 0) || 0;
-    const gp = Number(this._gold ?? 0) || 0;
-    const sp = Number(this._silver ?? 0) || 0;
-    const cp = Number(this._copper ?? 0) || 0;
-    const ep = Number(this._electrum ?? 0) || 0;
-
-    const goldFromPp = pp * 10;
-    const goldFromGp = gp;
-    const goldFromEp = ep * 0.5;
-    const goldFromSp = sp * 0.1;
-    const goldFromCp = cp * 0.01;
-
-    return goldFromPp + goldFromGp + goldFromEp + goldFromSp + goldFromCp;
+    return formatGoldEquivalent(
+      this._platinum,
+      this._gold,
+      this._electrum,
+      this._silver,
+      this._copper
+    );
   }
 
   /**
@@ -447,12 +443,6 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     const copperInput = root.querySelector('input[name="copper"]');
     const electrumInput = root.querySelector('input[name="electrum"]');
 
-    const toNonNegativeInt = (raw) => {
-      const n = Number(raw ?? 0);
-      if (!Number.isFinite(n) || n <= 0) return 0;
-      return Math.floor(n);
-    };
-
     const name = (nameInput?.value ?? "").toString().trim();
     const summary = summaryInput?.value?.toString() ?? "";
     const description = descInput?.value?.toString() ?? "";
@@ -460,11 +450,11 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     const useFolder = useFolderInput?.checked ?? true;
     const folderName = (folderInput?.value ?? "").toString().trim();
 
-    const platinum = toNonNegativeInt(platinumInput?.value);
-    const gold = toNonNegativeInt(goldInput?.value);
-    const silver = toNonNegativeInt(silverInput?.value);
-    const copper = toNonNegativeInt(copperInput?.value);
-    const electrum = toNonNegativeInt(electrumInput?.value);
+    const platinum = normalizeNumberInput(platinumInput?.value, 0);
+    const gold = normalizeNumberInput(goldInput?.value, 0);
+    const silver = normalizeNumberInput(silverInput?.value, 0);
+    const copper = normalizeNumberInput(copperInput?.value, 0);
+    const electrum = normalizeNumberInput(electrumInput?.value, 0);
 
     this._name = name || DEFAULT_ENCOUNTER_NAME;
     this._summary = summary;
