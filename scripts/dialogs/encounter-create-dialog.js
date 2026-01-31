@@ -873,8 +873,12 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     if (!result || !result.formula) return;
 
     let total;
+    let rollObj;
     try {
-      total = await rollCurrencyFormula(result.formula);
+      // Rzuć formułę RAZ i zapamiętaj Roll obiekt
+      rollObj = new Roll(result.formula);
+      await rollObj.evaluate();
+      total = Math.max(0, Math.floor(rollObj.total ?? 0));
     } catch (error) {
       console.error("[EncounterCreateDialog] Błąd rzutu:", error);
       ui.notifications.error("Nieprawidłowa formuła rzutu.");
@@ -884,11 +888,8 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     // Aktualizuj zarówno this._XXX jak i DOM
     setCurrencyValue(this, currencyKey, total);
 
-    // Wyślij wiadomość o rzucie do chatu
-    const r = new Roll(result.formula);
-    await r.evaluate();
-
-    r.toMessage({
+    // Wyślij wiadomość o rzucie do chatu - używając tego samego Roll obiektu
+    await rollObj.toMessage({
       speaker: ChatMessage.getSpeaker(),
       flavor: `Losowanie waluty (${prettyLabel}) dla encountera "${
         this._name ?? ""

@@ -8,10 +8,7 @@
  *  - EncounterCreateDialog._generateTreasureHoard()
  */
 
-import {
-  styleDialogRoot,
-  createDialogActionHandler
-} from "../services/index.js";
+import { styleDialogRoot } from "../services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
   foundry.applications.api;
@@ -116,6 +113,10 @@ export class TreasureChoiceDialog extends HandlebarsApplicationMixin(
   }
 
   _resolveAndClose(value) {
-    createDialogActionHandler(value, this, this.resolve)();
+    try {
+      this.resolve?.(value);
+    } finally {
+      this.close();
+    }
   }
 }

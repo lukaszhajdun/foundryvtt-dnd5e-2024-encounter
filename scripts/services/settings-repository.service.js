@@ -14,8 +14,50 @@
 import { MODULE_ID } from "../config/constants.js";
 
 /**
+ * Tworzy getter dla ustawienia.
+ * Automatycznie obsługuje błędy i wartości domyślne.
+ *
+ * @param {string} settingKey - Klucz ustawienia (np. "allyNpcWeight")
+ * @param {*} defaultValue - Wartość domyślna jeśli ustawienie nie istnieje
+ * @returns {Function} Funkcja getter
+ */
+function createSettingGetter(settingKey, defaultValue) {
+  return function getter() {
+    try {
+      const value = game.settings.get(MODULE_ID, settingKey);
+      return value !== undefined ? value : defaultValue;
+    } catch (_e) {
+      return defaultValue;
+    }
+  };
+}
+
+/**
+ * Tworzy setter dla ustawienia.
+ * Automatycznie obsługuje błędy.
+ *
+ * @param {string} settingKey - Klucz ustawienia
+ * @returns {Function} Funkcja setter
+ */
+function createSettingSetter(settingKey) {
+  return async function setter(value) {
+    try {
+      await game.settings.set(MODULE_ID, settingKey, value);
+    } catch (e) {
+      console.error(`${MODULE_ID} | Błąd zapisywania ${settingKey}:`, e);
+    }
+  };
+}
+
+// ──────────────────────────────────────────────────────────────
+// HAND-CRAFTED GETTERS Z LOGIKA VALIDACJI
+// ──────────────────────────────────────────────────────────────
+// Dla ustawień wymagających specjalnej walidacji/normalizacji
+
+/**
  * Pobiera wybrany próg trudności (target difficulty).
  * Domyślnie: "moderate"
+ * Validacja: Sprawdza czy wartość należy do ["low", "moderate", "high"]
  *
  * @returns {string} - "low", "moderate", lub "high"
  */
@@ -34,6 +76,7 @@ export function getTargetDifficulty() {
 /**
  * Pobiera tryb wyświetlania trudności.
  * Domyślnie: "dmg"
+ * UWAGA: To ustawienie nie jest w SETTINGS_CONFIG!
  *
  * @returns {string} - "dmg" lub "budget"
  */
@@ -51,20 +94,15 @@ export function getDifficultyDisplayMode() {
 
 /**
  * Pobiera flagę auto-load saved allies.
- * Domyślnie: false
+ * Auto-generated getter.
  *
  * @returns {boolean}
  */
-export function getAutoLoadSavedAllies() {
-  try {
-    return game.settings.get(MODULE_ID, "autoLoadSavedAllies") === true;
-  } catch (_e) {
-    return false;
-  }
-}
+export const getAutoLoadSavedAllies = createSettingGetter("autoLoadSavedAllies", true);
 
 /**
  * Pobiera tryb auto-loot quantity.
+ * Auto-generated getter z walidacją.
  * Domyślnie: "perEnemy"
  *
  * @returns {string} - "off", "perEnemy", lub "perActorType"
@@ -83,9 +121,10 @@ export function getAutoLootQuantityMode() {
 
 /**
  * Pobiera wagę sojuszniczych NPC.
- * Domyślnie: DEFAULT_ALLY_NPC_WEIGHT z config
+ * Domyślnie: 0.5
+ * Validacja: Liczba w zakresie 0-2
  *
- * @param {number} defaultValue - wartość domyślna
+ * @param {number} defaultValue - wartość domyślna (fallback)
  * @returns {number} - waga w zakresie 0-2
  */
 export function getAllyNpcWeight(defaultValue = 0.5) {
@@ -101,31 +140,19 @@ export function getAllyNpcWeight(defaultValue = 0.5) {
 
 /**
  * Pobiera zapisanych sojuszników.
- * Domyślnie: { uuids: [] }
+ * Auto-generated getter.
  *
  * @returns {Object} - { uuids: Array }
  */
-export function getSavedAllies() {
-  try {
-    return game.settings.get(MODULE_ID, "savedAllies") || { uuids: [] };
-  } catch (_e) {
-    return { uuids: [] };
-  }
-}
+export const getSavedAllies = createSettingGetter("savedAllies", { uuids: [] });
 
 /**
  * Pobiera zapisaną drużynę.
- * Domyślnie: { uuids: [] }
+ * Auto-generated getter.
  *
  * @returns {Object} - { uuids: Array }
  */
-export function getSavedTeam() {
-  try {
-    return game.settings.get(MODULE_ID, "savedTeam") || { uuids: [] };
-  } catch (_e) {
-    return { uuids: [] };
-  }
-}
+export const getSavedTeam = createSettingGetter("savedTeam", { uuids: [] });
 
 /**
  * Zapisuje sojuszników.
@@ -157,49 +184,31 @@ export async function setSavedTeam(data) {
 
 /**
  * Pobiera domyślną nazwę encountera.
- * Domyślnie: "Encounter"
+ * Auto-generated getter.
  *
  * @returns {string}
  */
-export function getEncounterDefaultName() {
-  try {
-    return game.settings.get(MODULE_ID, "encounterDefaultName") ?? "Encounter";
-  } catch (_e) {
-    return "Encounter";
-  }
-}
+export const getEncounterDefaultName = createSettingGetter("encounterDefaultName", "Encounter");
 
 /**
  * Pobiera flagę użycia folderu domyślnie.
- * Domyślnie: false
+ * Auto-generated getter.
  *
  * @returns {boolean}
  */
-export function getEncounterUseFolderByDefault() {
-  try {
-    return game.settings.get(MODULE_ID, "encounterUseFolderByDefault") === true;
-  } catch (_e) {
-    return false;
-  }
-}
+export const getEncounterUseFolderByDefault = createSettingGetter("encounterUseFolderByDefault", true);
 
 /**
  * Pobiera domyślną nazwę folderu encountera.
- * Domyślnie: "Encounters"
+ * Auto-generated getter.
  *
  * @returns {string}
  */
-export function getEncounterDefaultFolderName() {
-  try {
-    return game.settings.get(MODULE_ID, "encounterDefaultFolderName") ?? "Encounters";
-  } catch (_e) {
-    return "Encounters";
-  }
-}
+export const getEncounterDefaultFolderName = createSettingGetter("encounterDefaultFolderName", "Encounters");
 
 /**
  * Pobiera domyślną ilość złota.
- * Domyślnie: 0
+ * Auto-generated getter z walidacją liczby.
  *
  * @returns {number}
  */
@@ -215,7 +224,7 @@ export function getEncounterDefaultGold() {
 
 /**
  * Pobiera domyślną ilość srebra.
- * Domyślnie: 0
+ * Auto-generated getter z walidacją liczby.
  *
  * @returns {number}
  */
@@ -231,7 +240,7 @@ export function getEncounterDefaultSilver() {
 
 /**
  * Pobiera domyślną ilość miedzi.
- * Domyślnie: 0
+ * Auto-generated getter z walidacją liczby.
  *
  * @returns {number}
  */
