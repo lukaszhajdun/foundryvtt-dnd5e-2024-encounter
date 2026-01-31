@@ -39,3 +39,8 @@ export {
   getEncounterDefaultSilver,
   getEncounterDefaultCopper
 } from "./settings-repository.service.js";
+
+export {
+  createEncounterActor,
+  ensureActorFolder
+} from "./encounter-actor-factory.service.js";
