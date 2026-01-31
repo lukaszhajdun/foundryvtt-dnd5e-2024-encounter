@@ -114,3 +114,12 @@ export {
   validateItemQuantity
 } from "./item-quantity.service.js";
 
+export {
+  styleDialogRoot,
+  bindDialogButton,
+  bindMultipleDialogButtons,
+  validateRollFormula,
+  getInputValue,
+  resolveAndCloseDialog,
+  createDialogActionHandler
+} from "./dialog-helpers.service.js";
