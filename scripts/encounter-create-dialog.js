@@ -27,7 +27,8 @@ import {
   DEFAULT_ENCOUNTER_FOLDER_NAME,
   DEFAULT_ENCOUNTER_GOLD,
   DEFAULT_ENCOUNTER_SILVER,
-  DEFAULT_ENCOUNTER_COPPER
+  DEFAULT_ENCOUNTER_COPPER,
+  MAX_ITEM_QUANTITY
 } from "./config.js";
 import { applyUserStyles } from "./ui-style.js";
 import { RollFormulaDialog } from "./roll-formula-dialog.js";
@@ -572,7 +573,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     }
 
     if (q < 1) q = 1;
-    if (q > 99) q = 99;
+    if (q > MAX_ITEM_QUANTITY) q = MAX_ITEM_QUANTITY;
 
     entry.quantity = q;
   }
@@ -601,7 +602,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
       return;
     }
 
-    if (parsed > 99) parsed = 99;
+    if (parsed > MAX_ITEM_QUANTITY) parsed = MAX_ITEM_QUANTITY;
 
     this._updateItemQuantity(itemId, "set", parsed);
     this.render();

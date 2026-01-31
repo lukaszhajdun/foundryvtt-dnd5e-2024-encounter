@@ -77,6 +77,7 @@ export function calculateDifficulty({
     if (ally.type === "npc") {
       const npcXp = Number(ally.xp) || 0;
       if (npcXp <= 0) continue;
+      if (allyNpcWeight <= 0) continue; // Jeśli waga = 0, NPC są ignorowani
       const pseudoLevel = getPseudoLevelForNpcXp(npcXp, "moderate");
       partyMembers.push({
         level: pseudoLevel,

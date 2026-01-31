@@ -23,7 +23,8 @@ export const DEFAULT_ENCOUNTER_FOLDER_NAME = "Encounters";
 export const DEFAULT_ENCOUNTER_GOLD = 0;
 export const DEFAULT_ENCOUNTER_SILVER = 0;
 export const DEFAULT_ENCOUNTER_COPPER = 0;
-
+/** Maksymalna ilość przedmiotu (quantity) w liscie itemów. */
+export const MAX_ITEM_QUANTITY = 99;
 /**
  * Presety kolorów:
  *  - dark          – nasze domyślne ciemne,
