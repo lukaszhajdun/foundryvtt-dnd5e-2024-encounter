@@ -27,15 +27,10 @@ import {
   DEFAULT_ENCOUNTER_FOLDER_NAME,
   DEFAULT_ENCOUNTER_GOLD,
   DEFAULT_ENCOUNTER_SILVER,
-  DEFAULT_ENCOUNTER_COPPER,
-  MAX_ITEM_QUANTITY
+  DEFAULT_ENCOUNTER_COPPER
 } from "../config/constants.js";
 import { applyUserStyles } from "../services/ui/ui-style.service.js";
-import { RollFormulaDialog } from "./roll-formula-dialog.js";
-import { TreasureChoiceDialog } from "./treasure-choice-dialog.js";
 import {
-  generateIndividualTreasure,
-  generateTreasureHoard,
   getEncounterDefaultName,
   getEncounterUseFolderByDefault,
   getEncounterDefaultFolderName,
@@ -45,20 +40,31 @@ import {
   bindOnceAll,
   bindOnceAllMulti,
   formatCurrencyValue,
-  formatGoldEquivalent,
   normalizeNumberInput,
   queryCurrencyInputs,
   queryFormTextInputs,
-  getCurrencyLabel,
-  rollCurrencyFormula,
-  setCurrencyValue,
-  removeItemById,
-  updateItemQuantity,
-  validateItemQuantity
+  removeItemById
 } from "../services/index.js";
+import {
+  computeCurrencyGoldValue,
+  onCurrencyFieldChanged,
+  onClickRollCurrencyButton
+} from "./encounter-create/currency-tab-handler.js";
+import {
+  maybeInitializeAutoLootItems,
+  computeItemsGoldValue,
+  onDropItem,
+  updateItemQuantityForDialog,
+  onItemQuantityInputChange
+} from "./encounter-create/items-tab-handler.js";
+import {
+  getEnemiesForTreasure,
+  generateIndividualTreasureForDialog,
+  generateTreasureHoardForDialog
+} from "./encounter-create/treasure-handler.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-const { DragDrop, TextEditor } = foundry.applications.ux;
+const { DragDrop } = foundry.applications.ux;
 
 export class EncounterCreateDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   // Referencja do głównej aplikacji kalkulatora encounterów.
@@ -209,13 +215,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     }
 
     // 5) Obliczamy wartości waluty i przedmiotów za pomocą serwisu.
-    const currencyGoldValue = formatGoldEquivalent(
-      this._platinum,
-      this._gold,
-      this._electrum,
-      this._silver,
-      this._copper
-    );
+    const currencyGoldValue = this._computeCurrencyGoldValue();
     const itemsGoldValue = this._computeItemsGoldValue();
     const totalEncounterValue = currencyGoldValue + itemsGoldValue;
 
@@ -264,20 +264,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    * (np. ekwipunek przeciwników) – logika dostarczana przez EncounterCalculatorApp.
    */
   async _maybeInitializeAutoLootItems() {
-    if (Array.isArray(this._items) && this._items.length > 0) return;
-    if (!this.calculator) return;
-
-    const enemiesCount = this.calculator.enemies?.length ?? 0;
-    if (!enemiesCount) return;
-
-    const autoLootItems =
-      (await this.calculator.getAutoLootItemsFromEnemies()) ?? [];
-
-    if (!autoLootItems.length) return;
-
-    if (!Array.isArray(this._items) || !this._items.length) {
-      this._items = autoLootItems;
-    }
+    await maybeInitializeAutoLootItems(this);
   }
 
   /**
@@ -347,16 +334,15 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
 
   /**
    * Przelicza całą walutę encountera na złoto (GP) jako wartość liczbową.
-   * Deleguje do serwisu form-components.
    */
   _computeCurrencyGoldValue() {
-    return formatGoldEquivalent(
-      this._platinum,
-      this._gold,
-      this._electrum,
-      this._silver,
-      this._copper
-    );
+    return computeCurrencyGoldValue({
+      platinum: this._platinum,
+      gold: this._gold,
+      electrum: this._electrum,
+      silver: this._silver,
+      copper: this._copper
+    });
   }
 
   /**
@@ -364,52 +350,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    * Przyjmuje, że pole price itemu to już GP.
    */
   _computeItemsGoldValue() {
-    if (!Array.isArray(this._items) || !this._items.length) return 0;
-
-    return this._items.reduce((sum, item) => {
-      const price = Number(item.price ?? 0) || 0;
-      const qty = Math.max(1, Math.min(99, Number(item.quantity ?? 1) || 1));
-      return sum + price * qty;
-    }, 0);
-  }
-
-  /**
-   * Wylicza wartość itemu w GP na podstawie jego dokumentu (Item5e).
-   * Obsługuje strukturę system.price z jednostkami waluty (pp/gp/ep/sp/cp).
-   */
-  _getItemGoldValueFromDocument(item) {
-    const priceData = item?.system?.price;
-    if (priceData == null) return 0;
-
-    if (typeof priceData === "number") {
-      const value = Number(priceData) || 0;
-      return value;
-    }
-
-    if (typeof priceData === "object") {
-      const value = Number(priceData.value ?? 0) || 0;
-      const denom =
-        (priceData.denomination ?? priceData.currency ?? "gp").toLowerCase();
-
-      if (!value) return 0;
-
-      switch (denom) {
-        case "pp":
-          return value * 10;
-        case "gp":
-          return value;
-        case "ep":
-          return value * 0.5;
-        case "sp":
-          return value * 0.1;
-        case "cp":
-          return value * 0.01;
-        default:
-          return value;
-      }
-    }
-
-    return 0;
+    return computeItemsGoldValue(this._items);
   }
 
   // ─────────────────────────────────────────────
@@ -489,57 +430,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    * Grupuje itemy po uuid – jeśli już istnieje, zwiększa quantity, inaczej dodaje nowy wpis.
    */
   async _onDropItem(event) {
-    event.preventDefault();
-
-    const data = TextEditor.getDragEventData(event);
-    if (!data) return;
-
-    const type = data.type ?? data.documentName;
-    if (type !== "Item") return;
-
-    let uuid =
-      data.uuid ??
-      data.documentUuid ??
-      data.data?.uuid ??
-      (data.pack && data.id
-        ? `Compendium.${data.pack}.${data.id}`
-        : null);
-
-    if (!uuid && data.actorId && (data.id || data._id)) {
-      const itemId = data.id ?? data._id;
-      uuid = `Actor.${data.actorId}.Item.${itemId}`;
-    }
-
-    if (!uuid) return;
-
-    const item = await fromUuid(uuid);
-    if (!item || item.documentName !== "Item") return;
-
-    if (!Array.isArray(this._items)) this._items = [];
-
-    const existing = this._items.find((it) => it.uuid === item.uuid);
-
-    if (existing) {
-      const current = Number(existing.quantity ?? 1) || 1;
-      existing.quantity = Math.min(99, current + 1);
-    } else {
-      const localId = foundry.utils.randomID();
-      const priceGp = this._getItemGoldValueFromDocument(item);
-
-      const entry = {
-        _id: localId,
-        uuid: item.uuid,
-        name: item.name,
-        type: item.type,
-        img: item.img,
-        price: priceGp,
-        quantity: 1
-      };
-
-      this._items.push(entry);
-    }
-
-    this.render();
+    await onDropItem(this, event);
   }
 
   // ─────────────────────────────────────────────
@@ -552,33 +443,14 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    *  - "set" – ustaw konkretną wartość.
    */
   _updateItemQuantity(itemId, mode, value) {
-    if (!Array.isArray(this._items)) this._items = [];
-    const result = updateItemQuantity(this._items, itemId, mode, value);
-    this._items = result.items;
+    updateItemQuantityForDialog(this, itemId, mode, value);
   }
 
   /**
    * Handler zmiany ilości przedmiotu w polu input (zakładka "Przedmioty").
    */
   _onItemQuantityInputChange(event) {
-    const input = event.currentTarget;
-    const itemId = input.dataset.itemId;
-    if (!itemId) return;
-
-    const raw = input.value;
-    let parsed = Number(raw);
-
-    const validation = validateItemQuantity(parsed, this._items, itemId);
-    input.value = String(validation.normalized);
-
-    if (validation.shouldRemove) {
-      this._items = removeItemById(this._items, itemId);
-      this.render();
-      return;
-    }
-
-    this._updateItemQuantity(itemId, "set", validation.normalized);
-    this.render();
+    onItemQuantityInputChange(this, event);
   }
 
   // ─────────────────────────────────────────────
@@ -590,8 +462,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    * i odświeża stopkę, aby przeliczyć złoto w GP.
    */
   _onCurrencyFieldChanged(_event) {
-    this._readFormValues();
-    this.render();
+    onCurrencyFieldChanged(this);
   }
 
   // ─────────────────────────────────────────────
@@ -738,21 +609,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
    * z normalizacją CR i quantity.
    */
   _getEnemiesForTreasure() {
-    const raw = this.calculator?.enemies ?? [];
-    return raw
-      .map((e) => {
-        const crNum = e.cr != null ? Number(e.cr) : NaN;
-        const quantity = Number(e.quantity ?? 1) || 1;
-        const safeCr =
-          Number.isFinite(crNum) && crNum >= 0 ? crNum : null;
-
-        return {
-          name: e.name ?? "??",
-          cr: safeCr,
-          quantity: Math.max(1, Math.min(99, quantity))
-        };
-      })
-      .filter((e) => e.cr !== null);
+    return getEnemiesForTreasure(this);
   }
 
   // ─────────────────────────────────────────────
@@ -760,36 +617,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
   // ─────────────────────────────────────────────
 
   async _generateIndividualTreasure() {
-    const enemies = this._getEnemiesForTreasure();
-    if (!enemies.length) {
-      ui.notifications.info(
-        "Brak wrogów z CR – nie można wygenerować Individual Treasure."
-      );
-      return;
-    }
-
-    const mode = await this._promptTreasureMode("individual");
-    if (!mode) return;
-
-    const rollEvaluator = async (formula) => {
-      const roll = new Roll(formula);
-      await roll.evaluate();
-      return Math.max(0, Math.floor(roll.total ?? 0));
-    };
-
-    const result = await generateIndividualTreasure({
-      enemies,
-      mode,
-      rollEvaluator
-    });
-
-    this._platinum = result.platinum;
-    this._gold = result.gold;
-    this._silver = result.silver;
-    this._copper = result.copper;
-    this._electrum = result.electrum;
-
-    this.render();
+    await generateIndividualTreasureForDialog(this);
   }
 
   // ─────────────────────────────────────────────
@@ -797,53 +625,7 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
   // ─────────────────────────────────────────────
 
   async _generateTreasureHoard() {
-    const enemies = this._getEnemiesForTreasure();
-    if (!enemies.length) {
-      ui.notifications.info(
-        "Brak wrogów z CR – nie można wygenerować Treasure Hoard."
-      );
-      return;
-    }
-
-    const maxCr = Math.max(...enemies.map((e) => e.cr));
-
-    const mode = await this._promptTreasureMode("hoard");
-    if (!mode) return;
-
-    const rollEvaluator = async (formula) => {
-      const roll = new Roll(formula);
-      await roll.evaluate();
-      return Math.max(0, Math.floor(roll.total ?? 0));
-    };
-
-    const result = await generateTreasureHoard({
-      maxCr,
-      mode,
-      rollEvaluator
-    });
-
-    this._platinum = result.platinum;
-    this._gold = result.gold;
-    this._silver = result.silver;
-    this._copper = result.copper;
-    this._electrum = result.electrum;
-    this._magicItemsCount = result.magicItemsCount;
-
-    this.render();
-  }
-
-  // ─────────────────────────────────────────────
-  // Popup wyboru trybu: "rzuty" vs "średnie"
-  // ─────────────────────────────────────────────
-
-  async _promptTreasureMode(kind) {
-    return new Promise((resolve) => {
-      const dialog = new TreasureChoiceDialog({
-        kind,
-        resolve
-      });
-      dialog.render(true);
-    });
+    await generateTreasureHoardForDialog(this);
   }
 
   // ─────────────────────────────────────────────
@@ -851,51 +633,6 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
   // ─────────────────────────────────────────────
 
   async _onClickRollCurrencyButton(event) {
-    event.preventDefault();
-
-    const button = event.currentTarget;
-    if (!button) return;
-
-    const currencyKey = button.dataset.currency;
-    if (!currencyKey) return;
-
-    const prettyLabel = getCurrencyLabel(currencyKey);
-
-    const result = await new Promise((resolve) => {
-      const dialog = new RollFormulaDialog({
-        currencyLabel: prettyLabel,
-        defaultFormula: "",
-        resolve
-      });
-      dialog.render(true);
-    });
-
-    if (!result || !result.formula) return;
-
-    let total;
-    let rollObj;
-    try {
-      // Rzuć formułę RAZ i zapamiętaj Roll obiekt
-      rollObj = new Roll(result.formula);
-      await rollObj.evaluate();
-      total = Math.max(0, Math.floor(rollObj.total ?? 0));
-    } catch (error) {
-      console.error("[EncounterCreateDialog] Błąd rzutu:", error);
-      ui.notifications.error("Nieprawidłowa formuła rzutu.");
-      return;
-    }
-
-    // Aktualizuj zarówno this._XXX jak i DOM
-    setCurrencyValue(this, currencyKey, total);
-
-    // Wyślij wiadomość o rzucie do chatu - używając tego samego Roll obiektu
-    await rollObj.toMessage({
-      speaker: ChatMessage.getSpeaker(),
-      flavor: `Losowanie waluty (${prettyLabel}) dla encountera "${
-        this._name ?? ""
-      }".`
-    });
-
-    this.render();
+    await onClickRollCurrencyButton(this, event);
   }
 }
