@@ -37,7 +37,11 @@ import {
   addSingleActorToSide,
   updateEnemyQuantity,
   importGroupMembers,
-  importEncounterActor
+  importEncounterActor,
+  getDefaultDragDropCallbacks,
+  prepareDragDropConfig,
+  getPcUuids,
+  getAllyUuids
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -157,16 +161,8 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
    */
   #createDragDropHandlers() {
     return this.options.dragDrop.map((conf) => {
-      const config = {
-        ...conf,
-        permissions: {
-          dragstart: this._canDragStart.bind(this),
-          drop: this._canDragDrop.bind(this)
-        },
-        callbacks: {
-          drop: this._onDrop.bind(this)
-        }
-      };
+      const callbacks = getDefaultDragDropCallbacks(this);
+      const config = prepareDragDropConfig(conf, callbacks);
       return new DragDrop(config);
     });
   }
@@ -472,26 +468,14 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
   // Save / Load / Clear saved allies/team
   // ─────────────────────────────────────────────
   static async _onActionSaveTeam(_event, _target) {
-    // Zapisujemy tylko PC (character) obecnych w lewej kolumnie
-    const pcUuids = (this.allies || [])
-      .filter((a) => a?.type === "character" && a?.uuid)
-      .map((a) => a.uuid);
-
-    const unique = Array.from(new Set(pcUuids));
-
-    await setSavedTeam({ uuids: unique });
+    const pcUuids = getPcUuids(this.allies);
+    await setSavedTeam({ uuids: pcUuids });
     ui.notifications.info("Zapisano drużynę (PC) w ustawieniach świata.");
   }
 
   static async _onActionSaveAllies(_event, _target) {
-    // Zapisujemy wszystkich aktorów po lewej stronie (PC + NPC)
-    const allUuids = (this.allies || [])
-      .map((a) => a?.uuid)
-      .filter(Boolean);
-
-    const unique = Array.from(new Set(allUuids));
-
-    await setSavedAllies({ uuids: unique });
+    const allUuids = getAllyUuids(this.allies);
+    await setSavedAllies({ uuids: allUuids });
     ui.notifications.info("Zapisano sojuszników (PC + NPC) w ustawieniach świata.");
   }
 
