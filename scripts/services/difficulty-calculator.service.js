@@ -14,7 +14,7 @@
 import {
   getBudgetRowForLevel,
   getPseudoLevelForNpcXp
-} from "../xp-budget-2024.js";
+} from "../data/xp-budget-2024.js";
 import { DEFAULT_ALLY_NPC_WEIGHT } from "../config.js";
 
 /**
