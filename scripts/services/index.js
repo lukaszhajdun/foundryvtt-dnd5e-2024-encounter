@@ -57,7 +57,13 @@ export {
   getActorXp,
   removeEntryFromList,
   addSingleActorToSide,
-  addGroupMembers,
-  importEncounterActor,
   updateEnemyQuantity
 } from "./encounter-state.service.js";
+
+export {
+  importGroupMembers
+} from "./group-import.service.js";
+
+export {
+  importEncounterActor
+} from "./encounter-import.service.js";

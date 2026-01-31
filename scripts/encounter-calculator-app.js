@@ -35,9 +35,9 @@ import {
   getActorXp,
   removeEntryFromList,
   addSingleActorToSide,
-  addGroupMembers,
-  importEncounterActor,
-  updateEnemyQuantity
+  updateEnemyQuantity,
+  importGroupMembers,
+  importEncounterActor
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -317,7 +317,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
     // Aktor typu "group" – rozwijamy członków.
     if (actor.type === "group") {
-      await addGroupMembers({
+      await importGroupMembers({
         allies: this.allies,
         enemies: this.enemies,
         groupActor: actor,
