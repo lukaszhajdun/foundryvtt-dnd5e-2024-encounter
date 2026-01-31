@@ -5,6 +5,7 @@
 // scripts/roll-formula-dialog.js
 
 import { applyUserStyles } from "./ui-style.js";
+import { bindOnce } from "./services/index.js";
 
 // Wyciągamy ApplicationV2 i HandlebarsApplicationMixin z API Foundry 13+
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -116,19 +117,13 @@ export class RollFormulaDialog extends HandlebarsApplicationMixin(ApplicationV2)
     const rollButton = root.querySelector('[data-action="roll"]');
     const cancelButton = root.querySelector('[data-action="cancel"]');
 
-    if (rollButton && !rollButton.dataset.boundRoll) {
-      rollButton.addEventListener("click", (event) =>
-        this.#onClickRoll(event)
-      );
-      rollButton.dataset.boundRoll = "true";
-    }
+    bindOnce(rollButton, "boundRoll", "click", (event) =>
+      this.#onClickRoll(event)
+    );
 
-    if (cancelButton && !cancelButton.dataset.boundCancel) {
-      cancelButton.addEventListener("click", (event) =>
-        this.#onClickCancel(event)
-      );
-      cancelButton.dataset.boundCancel = "true";
-    }
+    bindOnce(cancelButton, "boundCancel", "click", (event) =>
+      this.#onClickCancel(event)
+    );
   }
 
 

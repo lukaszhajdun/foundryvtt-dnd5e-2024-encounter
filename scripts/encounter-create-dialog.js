@@ -40,7 +40,9 @@ import {
   getEncounterDefaultFolderName,
   getEncounterDefaultGold,
   getEncounterDefaultSilver,
-  getEncounterDefaultCopper
+  getEncounterDefaultCopper,
+  bindOnceAll,
+  bindOnceAllMulti
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -300,38 +302,33 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
 
     // ───── Zmiana ilości itemów (input number) ─────
     const qtyInputs = root.querySelectorAll(".ec-item-quantity-input");
-    qtyInputs.forEach((input) => {
-      if (input.dataset.boundItemQuantityChange === "true") return;
-      input.addEventListener("change", (event) =>
-        this._onItemQuantityInputChange(event)
-      );
-      input.dataset.boundItemQuantityChange = "true";
-    });
+    bindOnceAll(
+      qtyInputs,
+      "boundItemQuantityChange",
+      "change",
+      (event) => this._onItemQuantityInputChange(event)
+    );
 
     // ───── Przyciski losowania waluty (🎲 przy każdej walucie) ─────
     const rollButtons = root.querySelectorAll(".ec-roll-button");
-    rollButtons.forEach((button) => {
-      if (button.dataset.boundCurrencyRoll === "true") return;
-      button.addEventListener("click", (event) =>
-        this._onClickRollCurrencyButton(event)
-      );
-      button.dataset.boundCurrencyRoll = "true";
-    });
+    bindOnceAll(
+      rollButtons,
+      "boundCurrencyRoll",
+      "click",
+      (event) => this._onClickRollCurrencyButton(event)
+    );
 
     // ───── Ręczna zmiana wartości waluty (inputy) ─────
     const currencyInputs = root.querySelectorAll(
       '.ec-currency-input input[type="number"]'
     );
-    currencyInputs.forEach((input) => {
-      if (input.dataset.boundCurrencyChange === "true") return;
-
-      const handler = (event) => this._onCurrencyFieldChanged(event);
-
-      input.addEventListener("change", handler);
-      input.addEventListener("blur", handler);
-
-      input.dataset.boundCurrencyChange = "true";
-    });
+    const handler = (event) => this._onCurrencyFieldChanged(event);
+    bindOnceAllMulti(
+      currencyInputs,
+      "boundCurrencyChange",
+      ["change", "blur"],
+      handler
+    );
   }
 
   // ─────────────────────────────────────────────

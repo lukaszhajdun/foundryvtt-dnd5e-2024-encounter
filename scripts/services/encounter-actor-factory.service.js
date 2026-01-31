@@ -9,6 +9,7 @@
  */
 
 import { MODULE_ID } from "../config.js";
+import { formatPlainTextToHtml } from "./ui-helpers.service.js";
 
 /**
  * Tworzy aktora encounter typu "encounter".
@@ -56,24 +57,6 @@ export async function createEncounterActor({ enemies = [], config = {} }) {
   const descriptionText = (config.description ?? "").toString();
 
   const itemsConfigRaw = Array.isArray(config.items) ? config.items : [];
-
-  /**
-   * Prosta konwersja plain-text → prosty HTML (escape + <br> + <p>).
-   */
-  const formatPlainTextToHtml = (plain) => {
-    const trimmed = (plain ?? "").toString().trim();
-    if (!trimmed) return "";
-
-    const escaped = trimmed
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-
-    const withBreaks = escaped.replace(/\r?\n/g, "<br>");
-
-    return `<p>${withBreaks}</p>`;
-  };
 
   const summaryHtml = formatPlainTextToHtml(summaryText);
   const descriptionHtml = formatPlainTextToHtml(descriptionText);

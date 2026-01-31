@@ -44,3 +44,11 @@ export {
   createEncounterActor,
   ensureActorFolder
 } from "./encounter-actor-factory.service.js";
+
+export {
+  formatPlainTextToHtml,
+  bindOnce,
+  bindOnceAll,
+  bindOnceMulti,
+  bindOnceAllMulti
+} from "./ui-helpers.service.js";

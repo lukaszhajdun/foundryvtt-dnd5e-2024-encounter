@@ -30,7 +30,8 @@ import {
   getSavedTeam,
   setSavedAllies,
   setSavedTeam,
-  createEncounterActor
+  createEncounterActor,
+  bindOnceAll
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -259,13 +260,12 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     applyUserStyles(root);
 
     const quantityInputs = root.querySelectorAll("input.quantity-input");
-    quantityInputs.forEach((input) => {
-      if (input.dataset.boundQuantityChange === "true") return;
-      input.addEventListener("change", (event) =>
-        this.#onQuantityInputChange(event)
-      );
-      input.dataset.boundQuantityChange = "true";
-    });
+    bindOnceAll(
+      quantityInputs,
+      "boundQuantityChange",
+      "change",
+      (event) => this.#onQuantityInputChange(event)
+    );
   }
 
   /**
