@@ -52,3 +52,12 @@ export {
   bindOnceMulti,
   bindOnceAllMulti
 } from "./ui-helpers.service.js";
+
+export {
+  getActorXp,
+  removeEntryFromList,
+  addSingleActorToSide,
+  addGroupMembers,
+  importEncounterActor,
+  updateEnemyQuantity
+} from "./encounter-state.service.js";

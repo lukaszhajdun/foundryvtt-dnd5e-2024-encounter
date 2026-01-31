@@ -31,7 +31,13 @@ import {
   setSavedAllies,
   setSavedTeam,
   createEncounterActor,
-  bindOnceAll
+  bindOnceAll,
+  getActorXp,
+  removeEntryFromList,
+  addSingleActorToSide,
+  addGroupMembers,
+  importEncounterActor,
+  updateEnemyQuantity
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -194,7 +200,15 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       for (const uuid of uuids) {
         try {
           const actor = await fromUuid(uuid);
-          if (actor) this.#addSingleActorToSide(actor, "allies");
+          if (actor) {
+            addSingleActorToSide({
+              allies: this.allies,
+              enemies: this.enemies,
+              actor,
+              side: "allies",
+              getActorXpFn: getActorXp
+            });
+          }
         } catch (e) {
           console.error(e);
         }
@@ -303,234 +317,47 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
     // Aktor typu "group" – rozwijamy członków.
     if (actor.type === "group") {
-      await this.#addGroupMembers(actor, side);
+      await addGroupMembers({
+        allies: this.allies,
+        enemies: this.enemies,
+        groupActor: actor,
+        side,
+        actorResolverById: (id) => game.actors.get(id),
+        notifyWarn: (msg) => ui.notifications.warn(msg),
+        logWarn: (msg) => console.warn(`${MODULE_ID} | ${msg}`),
+        getActorXpFn: getActorXp
+      });
       this.render();
       return;
     }
 
     // Aktor typu "encounter" – import wrogów.
     if (actor.type === "encounter") {
-      await this.#importEncounterActor(actor, side);
+      await importEncounterActor({
+        allies: this.allies,
+        enemies: this.enemies,
+        encounterActor: actor,
+        side,
+        actorResolverByUuid: (uuid) => fromUuid(uuid),
+        notifyInfo: (msg) => ui.notifications.info(msg),
+        notifyWarn: (msg) => ui.notifications.warn(msg),
+        logWarn: (msg) => console.warn(`${MODULE_ID} | ${msg}`),
+        moduleId: MODULE_ID,
+        getActorXpFn: getActorXp
+      });
       this.render();
       return;
     }
 
     // Zwykły aktor (PC/NPC/potwór).
-    this.#addSingleActorToSide(actor, side);
+    addSingleActorToSide({
+      allies: this.allies,
+      enemies: this.enemies,
+      actor,
+      side,
+      getActorXpFn: getActorXp
+    });
     this.render();
-  }
-
-  /**
-   * Dodaje pojedynczego aktora po wskazanej stronie.
-   *
-   * PC:
-   *  - są traktowani jako unikalni – nie dublujemy ich po obu stronach,
-   *  - można ich przerzucać między stroną sojuszników i wrogów.
-   *
-   * NPC/potwory:
-   *  - po stronie wrogów obsługujemy ilość (quantity),
-   *  - po stronie sojuszników traktujemy jako pojedyncze wpisy.
-   */
-  #addSingleActorToSide(actor, side) {
-    const isPC = actor.type === "character";
-
-    const entry = {
-      id: actor.id,
-      uuid: actor.uuid,
-      name: actor.name,
-      type: actor.type,
-      level: actor.system?.details?.level ?? null,
-      cr: actor.system?.details?.cr ?? null,
-      xp: this.#getActorXP(actor),
-      quantity: 1,
-      totalXp: this.#getActorXP(actor)
-    };
-
-    if (isPC) {
-      // PC – zawsze unikalni, usuwamy z obu stron przed dodaniem.
-      this.#removeEntryFromList(this.allies, entry.uuid);
-      this.#removeEntryFromList(this.enemies, entry.uuid);
-
-      if (side === "enemies") {
-        entry.quantity = 1;
-        entry.totalXp = Number(entry.xp) || 0;
-        this.enemies.push(entry);
-      } else {
-        this.allies.push(entry);
-      }
-      return;
-    }
-
-    // NPC / potwory / inne – logika różna dla sojuszników i wrogów.
-    if (side === "enemies") {
-      const existing = this.enemies.find((e) => e.uuid === entry.uuid);
-
-      if (existing) {
-        let currentQ = Number(existing.quantity ?? 1) || 1;
-        currentQ = Math.min(currentQ + 1, 99);
-        existing.quantity = currentQ;
-        existing.totalXp = (Number(existing.xp) || 0) * currentQ;
-      } else {
-        entry.quantity = 1;
-        entry.totalXp = Number(entry.xp) || 0;
-        this.enemies.push(entry);
-      }
-    } else {
-      // Sojusznicy – nie grupujemy ilości, każdy wpis osobno.
-      this.allies.push(entry);
-    }
-  }
-
-  /**
-   * Dodaje członków aktora typu "group" po wskazanej stronie.
-   * Obsługujemy dwa formaty:
-   *  - system.members.ids (Set z id aktorów),
-   *  - system.members jako tablicę obiektów z polami actor/id/_id.
-   */
-  async #addGroupMembers(groupActor, side) {
-    const members = groupActor.system?.members;
-    if (!members) {
-      ui.notifications.warn(
-        `Grupa "${groupActor.name}" nie ma zdefiniowanych członków (system.members).`
-      );
-      return;
-    }
-
-    let memberIds = [];
-
-    // Preferowany format: members.ids jako Set
-    if (members.ids instanceof Set) {
-      memberIds = Array.from(members.ids);
-    }
-
-    // Fallback: członkowie jako tablica obiektów
-    if (!memberIds.length && Array.isArray(members)) {
-      memberIds = members
-        .map((m) => m?.actor ?? m?.id ?? m?._id ?? null)
-        .filter(Boolean);
-    }
-
-    memberIds = [...new Set(memberIds.filter((id) => !!id))];
-
-    if (!memberIds.length) {
-      ui.notifications.warn(
-        `Grupa "${groupActor.name}" nie zawiera żadnych rozpoznawalnych członków.`
-      );
-      return;
-    }
-
-    for (const id of memberIds) {
-      const memberActor = game.actors.get(id);
-      if (!memberActor) {
-        console.warn(
-          `${MODULE_ID} | Nie znaleziono aktora o id "${id}" z grupy "${groupActor.name}".`
-        );
-        continue;
-      }
-
-      this.#addSingleActorToSide(memberActor, side);
-    }
-  }
-
-  /**
-   * Importuje aktora encounter do kalkulatora (po stronie enemies).
-   *
-   * Obsługiwane przypadki:
-   *  1) Encounter utworzony przez nasz moduł – dane w flags[MODULE_ID].enemies.
-   *  2) Encounter utworzony ręcznie w Foundry – dane w system.members (format dnd5e).
-   */
-  async #importEncounterActor(encounterActor, side) {
-    // Encounter zawsze importujemy po stronie wrogów – nawet jeśli ktoś przeciągnie go na sojuszników.
-    if (side !== "enemies") {
-      ui.notifications.info(
-        "Aktor encounter jest importowany po stronie wrogów – przeciągnij go na kolumnę wrogów."
-      );
-      side = "enemies";
-    }
-
-    // 1) Próba odczytu danych zapisanych przez nasz moduł.
-    const flags = encounterActor.flags?.[MODULE_ID];
-    let entries = null;
-
-    if (Array.isArray(flags?.enemies) && flags.enemies.length) {
-      // Encounter utworzony przez kalkulator – używamy naszego formatu.
-      entries = flags.enemies
-        .map((e) => ({
-          uuid: e.uuid ?? null,
-          quantity: Number(e.quantity ?? 1) || 1
-        }))
-        .filter((e) => !!e.uuid);
-    }
-
-    // 2) Jeśli nie ma entries w flags, próbujemy odczytać system.members (Encounter zrobiony ręcznie).
-    if (
-      (!entries || !entries.length) &&
-      Array.isArray(encounterActor.system?.members)
-    ) {
-      const sysMembers = encounterActor.system.members;
-
-      entries = sysMembers
-        .map((m) => {
-          // W dnd5e encounter members mają zazwyczaj:
-          // { uuid: string, quantity: { value: number } }
-          const uuid =
-            m.uuid ??
-            m.actorUuid ??
-            m.actor ??
-            null;
-
-          const qty =
-            Number(m.quantity?.value ?? m.quantity ?? 1) || 1;
-
-          return { uuid, quantity: qty };
-        })
-        .filter((e) => !!e.uuid);
-    }
-
-    // 3) Jeśli nadal brak danych – kończymy z komunikatem.
-    if (!entries || !entries.length) {
-      ui.notifications.warn(
-        "Ten aktor encounter nie zawiera danych o wrogach w formacie obsługiwanym przez kalkulator."
-      );
-      return;
-    }
-
-    // 4) Dla każdego wpisu:
-    //    - pobieramy aktora po uuid,
-    //    - dodajemy go tyle razy, ile wynosi quantity.
-    for (const e of entries) {
-      const eUuid = e.uuid;
-      const qty = Number(e.quantity ?? 1) || 1;
-      if (!eUuid) continue;
-
-      const enemyActor = await fromUuid(eUuid);
-      if (!enemyActor) {
-        console.warn(
-          `${MODULE_ID} | Nie udało się odnaleźć aktora wroga o uuid ${eUuid} podczas importu encountera.`
-        );
-        continue;
-      }
-
-      const loops = Math.max(1, Math.min(qty, 999));
-      for (let i = 0; i < loops; i++) {
-        // Dodajemy jako wroga – strona zawsze "enemies".
-        this.#addSingleActorToSide(enemyActor, "enemies");
-      }
-    }
-  }
-
-  /**
-   * Odczytuje XP z aktora (system.details.xp.value, jeśli istnieje).
-   */
-  #getActorXP(actor) {
-    const xpValue = actor.system?.details?.xp?.value;
-    if (Number.isFinite(xpValue)) return Number(xpValue) || 0;
-    return 0;
-  }
-
-  #removeEntryFromList(list, uuid) {
-    const index = list.findIndex((e) => e.uuid === uuid);
-    if (index !== -1) list.splice(index, 1);
   }
 
   #getAllyNpcWeight() {
@@ -609,8 +436,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     if (!uuid || !side) return;
 
     const list = side === "enemies" ? this.enemies : this.allies;
-    const index = list.findIndex((e) => e.uuid === uuid);
-    if (index !== -1) list.splice(index, 1);
+    removeEntryFromList(list, uuid);
 
     this.render();
   }
@@ -690,7 +516,13 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       try {
         const actor = await fromUuid(uuid);
         if (actor) {
-          this.#addSingleActorToSide(actor, "allies");
+          addSingleActorToSide({
+            allies: this.allies,
+            enemies: this.enemies,
+            actor,
+            side: "allies",
+            getActorXpFn: getActorXp
+          });
         } else {
           console.warn(`${MODULE_ID} | Nie znaleziono aktora o uuid ${uuid} podczas wczytywania zapisu.`);
         }
@@ -716,37 +548,11 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
    *  - "delta" – zmiana o wartość (np. +1 / -1),
    *  - "set"   – ustaw na wartość.
    */
-  _updateEnemyQuantity(uuid, mode, value) {
-    const enemy = this.enemies.find((e) => e.uuid === uuid);
-    if (!enemy) return;
-
-    const baseXp = Number(enemy.xp) || 0;
-    let q = Number(enemy.quantity ?? 1) || 1;
-
-    if (mode === "delta") {
-      q += value;
-    } else if (mode === "set") {
-      q = value;
-    }
-
-    if (q <= 0) {
-      const idx = this.enemies.findIndex((e) => e.uuid === uuid);
-      if (idx !== -1) this.enemies.splice(idx, 1);
-      return;
-    }
-
-    if (q < 1) q = 1;
-    if (q > 99) q = 99;
-
-    enemy.quantity = q;
-    enemy.totalXp = baseXp * q;
-  }
-
   static _onActionIncreaseQuantity(_event, target) {
     const uuid = target?.dataset?.uuid;
     if (!uuid) return;
 
-    this._updateEnemyQuantity(uuid, "delta", 1);
+    updateEnemyQuantity(this.enemies, uuid, "delta", 1);
     this.render();
   }
 
@@ -754,7 +560,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     const uuid = target?.dataset?.uuid;
     if (!uuid) return;
 
-    this._updateEnemyQuantity(uuid, "delta", -1);
+    updateEnemyQuantity(this.enemies, uuid, "delta", -1);
     this.render();
   }
 
@@ -777,15 +583,14 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     }
 
     if (parsed <= 0) {
-      const idx = this.enemies.findIndex((e) => e.uuid === uuid);
-      if (idx !== -1) this.enemies.splice(idx, 1);
+      updateEnemyQuantity(this.enemies, uuid, "set", parsed);
       this.render();
       return;
     }
 
     if (parsed > 99) parsed = 99;
 
-    this._updateEnemyQuantity(uuid, "set", parsed);
+    updateEnemyQuantity(this.enemies, uuid, "set", parsed);
     this.render();
   }
 }
