@@ -21,3 +21,21 @@ export {
   getIndividualTreasureConfig,
   getTreasureHoardConfig
 } from "./treasure-generator.service.js";
+
+export {
+  getTargetDifficulty,
+  getDifficultyDisplayMode,
+  getAutoLoadSavedAllies,
+  getAutoLootQuantityMode,
+  getAllyNpcWeight,
+  getSavedAllies,
+  getSavedTeam,
+  setSavedAllies,
+  setSavedTeam,
+  getEncounterDefaultName,
+  getEncounterUseFolderByDefault,
+  getEncounterDefaultFolderName,
+  getEncounterDefaultGold,
+  getEncounterDefaultSilver,
+  getEncounterDefaultCopper
+} from "./settings-repository.service.js";

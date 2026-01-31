@@ -20,7 +20,16 @@ import {
 import {
   calculateDifficulty,
   normalizeEnemyQuantities,
-  aggregateLootFromEnemies
+  aggregateLootFromEnemies,
+  getTargetDifficulty,
+  getDifficultyDisplayMode,
+  getAutoLoadSavedAllies,
+  getAutoLootQuantityMode,
+  getAllyNpcWeight,
+  getSavedAllies,
+  getSavedTeam,
+  setSavedAllies,
+  setSavedTeam
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -118,43 +127,19 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     super(options);
 
     // Domyślny próg budżetu (Niska/Umiarkowana/Wysoka).
-    try {
-      const stored = game.settings.get(MODULE_ID, "targetDifficulty");
-      if (["low", "moderate", "high"].includes(stored)) {
-        this.targetDifficultyKey = stored;
-      }
-    } catch (_e) {
-      this.targetDifficultyKey = "moderate";
-    }
+    this.targetDifficultyKey = getTargetDifficulty();
 
     // Tryb wyświetlania trudności (klasyczny DMG vs wzgl. budżetu).
-    try {
-      const mode = game.settings.get(
-        MODULE_ID,
-        "difficultyDisplayMode"
-      );
-      if (mode === "budget" || mode === "dmg") {
-        this.difficultyDisplayMode = mode;
-      } else {
-        this.difficultyDisplayMode = "dmg";
-      }
-    } catch (_e) {
-      this.difficultyDisplayMode = "dmg";
-    }
+    this.difficultyDisplayMode = getDifficultyDisplayMode();
 
     this.dragDropHandlers = this.#createDragDropHandlers();
 
     // Autowczytywanie zapisanego zestawu sojuszników (jeśli włączone w ustawieniach)
     (async () => {
-      try {
-        const auto = game.settings.get(MODULE_ID, "autoLoadSavedAllies");
-        if (auto) {
-          await this._loadSavedFromSettings();
-          // renderujemy z nowymi sojusznikami
-          this.render();
-        }
-      } catch (_e) {
-        // ignore
+      if (getAutoLoadSavedAllies()) {
+        await this._loadSavedFromSettings();
+        // renderujemy z nowymi sojusznikami
+        this.render();
       }
     })();
   }
@@ -192,8 +177,8 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
    */
   async _loadSavedFromSettings() {
     try {
-      const savedAllies = game.settings.get(MODULE_ID, "savedAllies") || { uuids: [] };
-      const savedTeam = game.settings.get(MODULE_ID, "savedTeam") || { uuids: [] };
+      const savedAllies = getSavedAllies();
+      const savedTeam = getSavedTeam();
 
       const uuids = Array.isArray(savedAllies.uuids) && savedAllies.uuids.length
         ? savedAllies.uuids
@@ -548,15 +533,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
   }
 
   #getAllyNpcWeight() {
-    try {
-      const value = game.settings.get(MODULE_ID, "allyNpcWeight");
-      const num = Number(value);
-      if (!Number.isFinite(num)) return DEFAULT_ALLY_NPC_WEIGHT;
-      const clamped = Math.max(0, Math.min(2, num));
-      return clamped;
-    } catch (_e) {
-      return DEFAULT_ALLY_NPC_WEIGHT;
-    }
+    return getAllyNpcWeight(DEFAULT_ALLY_NPC_WEIGHT);
   }
 
   /**
@@ -587,22 +564,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
    */
   async getAutoLootItemsFromEnemies() {
     // Odczytujemy tryb auto-loot z ustawień modułu.
-    let mode = "perEnemy";
-    try {
-      const stored = game.settings.get(
-        MODULE_ID,
-        "autoLootQuantityMode"
-      );
-      if (
-        stored === "off" ||
-        stored === "perEnemy" ||
-        stored === "perActorType"
-      ) {
-        mode = stored;
-      }
-    } catch (_e) {
-      // jeśli brak ustawienia – zostawiamy domyślne "perEnemy"
-    }
+    const mode = getAutoLootQuantityMode();
 
     return aggregateLootFromEnemies({
       enemies: this.enemies,
@@ -907,7 +869,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
     const unique = Array.from(new Set(pcUuids));
 
-    await game.settings.set(MODULE_ID, "savedTeam", { uuids: unique });
+    await setSavedTeam({ uuids: unique });
     ui.notifications.info("Zapisano drużynę (PC) w ustawieniach świata.");
   }
 
@@ -919,14 +881,14 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
     const unique = Array.from(new Set(allUuids));
 
-    await game.settings.set(MODULE_ID, "savedAllies", { uuids: unique });
+    await setSavedAllies({ uuids: unique });
     ui.notifications.info("Zapisano sojuszników (PC + NPC) w ustawieniach świata.");
   }
 
   static async _onActionLoadSaved(_event, _target) {
     // Wczytujemy zapis – preferujemy savedAllies, fallback na savedTeam
-    const savedAllies = game.settings.get(MODULE_ID, "savedAllies") || { uuids: [] };
-    const savedTeam = game.settings.get(MODULE_ID, "savedTeam") || { uuids: [] };
+    const savedAllies = getSavedAllies();
+    const savedTeam = getSavedTeam();
 
     const uuids = Array.isArray(savedAllies.uuids) && savedAllies.uuids.length
       ? savedAllies.uuids
@@ -959,8 +921,8 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
   static async _onActionClearSaved(_event, _target) {
     // Usuwamy zapisane presety (czyszcząc tablice uuid)
-    await game.settings.set(MODULE_ID, "savedAllies", { uuids: [] });
-    await game.settings.set(MODULE_ID, "savedTeam", { uuids: [] });
+    await setSavedAllies({ uuids: [] });
+    await setSavedTeam({ uuids: [] });
     ui.notifications.info("Usunięto zapis drużyny i sojuszników z ustawień świata.");
   }
 

@@ -34,7 +34,13 @@ import { RollFormulaDialog } from "./roll-formula-dialog.js";
 import { TreasureChoiceDialog } from "./treasure-choice-dialog.js";
 import {
   generateIndividualTreasure,
-  generateTreasureHoard
+  generateTreasureHoard,
+  getEncounterDefaultName,
+  getEncounterUseFolderByDefault,
+  getEncounterDefaultFolderName,
+  getEncounterDefaultGold,
+  getEncounterDefaultSilver,
+  getEncounterDefaultCopper
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -126,29 +132,12 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
   // ─────────────────────────────────────────────
 
   static loadEncounterSettings() {
-    let name = DEFAULT_ENCOUNTER_NAME;
-    let useFolder = true;
-    let folderName = DEFAULT_ENCOUNTER_FOLDER_NAME;
-    let gold = DEFAULT_ENCOUNTER_GOLD;
-    let silver = DEFAULT_ENCOUNTER_SILVER;
-    let copper = DEFAULT_ENCOUNTER_COPPER;
-
-    try {
-      name = game.settings.get(MODULE_ID, "encounterDefaultName") ?? name;
-      useFolder =
-        game.settings.get(MODULE_ID, "encounterUseFolderByDefault") ??
-        useFolder;
-      folderName =
-        game.settings.get(MODULE_ID, "encounterDefaultFolderName") ??
-        folderName;
-      gold = game.settings.get(MODULE_ID, "encounterDefaultGold") ?? gold;
-      silver =
-        game.settings.get(MODULE_ID, "encounterDefaultSilver") ?? silver;
-      copper =
-        game.settings.get(MODULE_ID, "encounterDefaultCopper") ?? copper;
-    } catch (_e) {
-      // Ignorujemy błędy – w razie problemów użyjemy wartości domyślnych.
-    }
+    let name = getEncounterDefaultName() || DEFAULT_ENCOUNTER_NAME;
+    let useFolder = getEncounterUseFolderByDefault() ?? true;
+    let folderName = getEncounterDefaultFolderName() || DEFAULT_ENCOUNTER_FOLDER_NAME;
+    let gold = getEncounterDefaultGold() ?? DEFAULT_ENCOUNTER_GOLD;
+    let silver = getEncounterDefaultSilver() ?? DEFAULT_ENCOUNTER_SILVER;
+    let copper = getEncounterDefaultCopper() ?? DEFAULT_ENCOUNTER_COPPER;
 
     return {
       name,
