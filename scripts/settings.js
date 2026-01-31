@@ -4,7 +4,7 @@
  * Rejestracja wszystkich ustawień modułu.
  * Ten plik jest powiązany z:
  *  - config.js (stałe i domyślne wartości)
- *  - ui-style.js (nakładanie stylu na okna)
+ *  - services/ui/ui-style.service.js (nakładanie stylu na okna)
  *  - encounter-create-dialog.js (popup "Utwórz encounter")
  */
 

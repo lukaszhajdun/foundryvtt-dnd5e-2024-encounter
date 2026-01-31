@@ -5,7 +5,7 @@
  * Zmniejsza duplikację kodu w RollFormulaDialog i TreasureChoiceDialog.
  */
 
-import { applyUserStyles } from "../../ui-style.js";
+import { applyUserStyles } from "./ui-style.service.js";
 import { bindOnce } from "./ui-helpers.service.js";
 
 /**

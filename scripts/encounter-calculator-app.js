@@ -11,7 +11,7 @@
  *  - dostarczanie listy przedmiotów do auto-loot w popupie encountera.
  */
 
-import { applyUserStyles } from "./ui-style.js";
+import { applyUserStyles } from "./services/ui/ui-style.service.js";
 import { EncounterCreateDialog } from "./dialogs/encounter-create-dialog.js";
 import {
   MODULE_ID,
