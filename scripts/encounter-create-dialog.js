@@ -32,6 +32,10 @@ import {
 import { applyUserStyles } from "./ui-style.js";
 import { RollFormulaDialog } from "./roll-formula-dialog.js";
 import { TreasureChoiceDialog } from "./treasure-choice-dialog.js";
+import {
+  generateIndividualTreasure,
+  generateTreasureHoard
+} from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const { DragDrop, TextEditor } = foundry.applications.ux;
@@ -805,34 +809,6 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
   // INDIVIDUAL TREASURE
   // ─────────────────────────────────────────────
 
-  _getIndividualTreasureConfig(cr) {
-    if (cr <= 4) {
-      return {
-        formula: "3d6",
-        average: 10,
-        currency: "gp"
-      };
-    } else if (cr <= 10) {
-      return {
-        formula: "2d8*10",
-        average: 90,
-        currency: "gp"
-      };
-    } else if (cr <= 16) {
-      return {
-        formula: "2d10*10",
-        average: 110,
-        currency: "pp"
-      };
-    } else {
-      return {
-        formula: "2d8*100",
-        average: 900,
-        currency: "pp"
-      };
-    }
-  }
-
   async _generateIndividualTreasure() {
     const enemies = this._getEnemiesForTreasure();
     if (!enemies.length) {
@@ -845,47 +821,23 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     const mode = await this._promptTreasureMode("individual");
     if (!mode) return;
 
-    let totalGp = 0;
-    let totalPp = 0;
+    const rollEvaluator = async (formula) => {
+      const roll = new Roll(formula);
+      await roll.evaluate();
+      return Math.max(0, Math.floor(roll.total ?? 0));
+    };
 
-    for (const enemy of enemies) {
-      const cfg = this._getIndividualTreasureConfig(enemy.cr);
-      if (!cfg) continue;
+    const result = await generateIndividualTreasure({
+      enemies,
+      mode,
+      rollEvaluator
+    });
 
-      const { formula, average, currency } = cfg;
-      const quantity = enemy.quantity;
-
-      if (mode === "average") {
-        const avgPer = average ?? 0;
-        const totalForEnemy = avgPer * quantity;
-        if (currency === "pp") totalPp += totalForEnemy;
-        else totalGp += totalForEnemy;
-      } else {
-        if (!formula) continue;
-
-        const expr =
-          quantity > 1 ? `(${formula})*${quantity}` : formula;
-
-        const roll = new Roll(expr);
-        await roll.evaluate();
-
-        const rolledTotal = Math.max(0, Math.floor(roll.total ?? 0));
-        if (currency === "pp") totalPp += rolledTotal;
-        else totalGp += rolledTotal;
-      }
-    }
-
-    this._platinum = 0;
-    this._gold = 0;
-    this._silver = 0;
-    this._copper = 0;
-    this._electrum = 0;
-
-    const finalPp = Math.max(0, Math.floor(totalPp));
-    const finalGp = Math.max(0, Math.floor(totalGp));
-
-    if (finalPp) this._platinum = finalPp;
-    if (finalGp) this._gold = finalGp;
+    this._platinum = result.platinum;
+    this._gold = result.gold;
+    this._silver = result.silver;
+    this._copper = result.copper;
+    this._electrum = result.electrum;
 
     this.render();
   }
@@ -893,34 +845,6 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
   // ─────────────────────────────────────────────
   // TREASURE HOARD
   // ─────────────────────────────────────────────
-
-  _getTreasureHoardConfig(maxCr) {
-    if (maxCr <= 4) {
-      return {
-        moneyFormula: "2d4*100",
-        moneyAverage: 500,
-        magicItemsFormula: "1d4-1"
-      };
-    } else if (maxCr <= 10) {
-      return {
-        moneyFormula: "8d10*100",
-        moneyAverage: 4400,
-        magicItemsFormula: "1d3"
-      };
-    } else if (maxCr <= 16) {
-      return {
-        moneyFormula: "8d8*1000",
-        moneyAverage: 36000,
-        magicItemsFormula: "1d4"
-      };
-    } else {
-      return {
-        moneyFormula: "6d10*10000",
-        moneyAverage: 330000,
-        magicItemsFormula: "1d6"
-      };
-    }
-  }
 
   async _generateTreasureHoard() {
     const enemies = this._getEnemiesForTreasure();
@@ -932,42 +856,28 @@ export class EncounterCreateDialog extends HandlebarsApplicationMixin(Applicatio
     }
 
     const maxCr = Math.max(...enemies.map((e) => e.cr));
-    const cfg = this._getTreasureHoardConfig(maxCr);
-    if (!cfg) {
-      ui.notifications.warn(
-        "Brak konfiguracji Treasure Hoard dla podanego CR."
-      );
-      return;
-    }
 
     const mode = await this._promptTreasureMode("hoard");
     if (!mode) return;
 
-    let goldTotal = 0;
-
-    if (mode === "average") {
-      goldTotal = cfg.moneyAverage ?? 0;
-    } else {
-      const roll = new Roll(cfg.moneyFormula);
+    const rollEvaluator = async (formula) => {
+      const roll = new Roll(formula);
       await roll.evaluate();
-      goldTotal = Math.max(0, Math.floor(roll.total ?? 0));
-    }
+      return Math.max(0, Math.floor(roll.total ?? 0));
+    };
 
-    let magicCount = 0;
-    if (cfg.magicItemsFormula) {
-      const rollItems = new Roll(cfg.magicItemsFormula);
-      await rollItems.evaluate();
-      magicCount = Math.max(0, Math.floor(rollItems.total ?? 0));
-    }
+    const result = await generateTreasureHoard({
+      maxCr,
+      mode,
+      rollEvaluator
+    });
 
-    this._platinum = 0;
-    this._gold = 0;
-    this._silver = 0;
-    this._copper = 0;
-    this._electrum = 0;
-
-    this._gold = goldTotal;
-    this._magicItemsCount = magicCount;
+    this._platinum = result.platinum;
+    this._gold = result.gold;
+    this._silver = result.silver;
+    this._copper = result.copper;
+    this._electrum = result.electrum;
+    this._magicItemsCount = result.magicItemsCount;
 
     this.render();
   }

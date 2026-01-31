@@ -14,3 +14,10 @@ export {
   aggregateLootFromEnemies,
   getItemGoldValue
 } from "./loot-aggregator.service.js";
+
+export {
+  generateIndividualTreasure,
+  generateTreasureHoard,
+  getIndividualTreasureConfig,
+  getTreasureHoardConfig
+} from "./treasure-generator.service.js";
