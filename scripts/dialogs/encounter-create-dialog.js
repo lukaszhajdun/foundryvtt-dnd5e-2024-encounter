@@ -29,8 +29,8 @@ import {
   DEFAULT_ENCOUNTER_SILVER,
   DEFAULT_ENCOUNTER_COPPER,
   MAX_ITEM_QUANTITY
-} from "./config.js";
-import { applyUserStyles } from "./ui-style.js";
+} from "../config.js";
+import { applyUserStyles } from "../ui-style.js";
 import { RollFormulaDialog } from "./roll-formula-dialog.js";
 import { TreasureChoiceDialog } from "./treasure-choice-dialog.js";
 import {
@@ -55,7 +55,7 @@ import {
   removeItemById,
   updateItemQuantity,
   validateItemQuantity
-} from "./services/index.js";
+} from "../services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const { DragDrop, TextEditor } = foundry.applications.ux;

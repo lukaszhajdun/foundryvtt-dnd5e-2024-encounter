@@ -12,7 +12,7 @@
  */
 
 import { applyUserStyles } from "./ui-style.js";
-import { EncounterCreateDialog } from "./encounter-create-dialog.js";
+import { EncounterCreateDialog } from "./dialogs/encounter-create-dialog.js";
 import {
   MODULE_ID,
   DEFAULT_ALLY_NPC_WEIGHT

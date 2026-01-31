@@ -8,7 +8,7 @@
  *  - EncounterCreateDialog._generateTreasureHoard()
  */
 
-import { applyUserStyles } from "./ui-style.js";
+import { applyUserStyles } from "../ui-style.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
   foundry.applications.api;

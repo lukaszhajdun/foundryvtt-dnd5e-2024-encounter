@@ -4,8 +4,8 @@
 // scripts/roll-formula-dialog.js
 // scripts/roll-formula-dialog.js
 
-import { applyUserStyles } from "./ui-style.js";
-import { bindOnce } from "./services/index.js";
+import { applyUserStyles } from "../ui-style.js";
+import { bindOnce } from "../services/index.js";
 
 // Wyciągamy ApplicationV2 i HandlebarsApplicationMixin z API Foundry 13+
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
