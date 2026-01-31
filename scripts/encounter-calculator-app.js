@@ -14,6 +14,19 @@
 import { applyUserStyles } from "./services/ui/ui-style.service.js";
 import { EncounterCreateDialog } from "./dialogs/encounter-create-dialog.js";
 import {
+  onActionClearAllies,
+  onActionClearEnemies,
+  onActionRemoveEntry,
+  onActionOpenEncounterDialog,
+  onActionSetTargetDifficulty,
+  onActionSaveTeam,
+  onActionSaveAllies,
+  onActionLoadSaved,
+  onActionClearSaved,
+  onActionIncreaseQuantity,
+  onActionDecreaseQuantity
+} from "./calculator-actions.js";
+import {
   MODULE_ID,
   DEFAULT_ALLY_NPC_WEIGHT
 } from "./config/constants.js";
@@ -28,20 +41,15 @@ import {
   getAllyNpcWeight,
   getSavedAllies,
   getSavedTeam,
-  setSavedAllies,
-  setSavedTeam,
   createEncounterActor,
   bindOnceAll,
   getActorXp,
-  removeEntryFromList,
   addSingleActorToSide,
   updateEnemyQuantity,
   importGroupMembers,
   importEncounterActor,
   getDefaultDragDropCallbacks,
-  prepareDragDropConfig,
-  getPcUuids,
-  getAllyUuids
+  prepareDragDropConfig
 } from "./services/index.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } =
@@ -108,14 +116,10 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
       loadSaved: EncounterCalculatorApp._onActionLoadSaved,
       clearSaved: EncounterCalculatorApp._onActionClearSaved,
       removeEntry: EncounterCalculatorApp._onActionRemoveEntry,
-      openEncounterDialog:
-        EncounterCalculatorApp._onActionOpenEncounterDialog,
-      setTargetDifficulty:
-        EncounterCalculatorApp._onActionSetTargetDifficulty,
-      increaseQuantity:
-        EncounterCalculatorApp._onActionIncreaseQuantity,
-      decreaseQuantity:
-        EncounterCalculatorApp._onActionDecreaseQuantity
+      openEncounterDialog: EncounterCalculatorApp._onActionOpenEncounterDialog,
+      setTargetDifficulty: EncounterCalculatorApp._onActionSetTargetDifficulty,
+      increaseQuantity: EncounterCalculatorApp._onActionIncreaseQuantity,
+      decreaseQuantity: EncounterCalculatorApp._onActionDecreaseQuantity
     }
   };
 
@@ -412,141 +416,7 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
     });
   }
 
-  // ─────────────────────────────────────────────
-  // ACTIONS – przyciski z encounter-calculator.hbs
-  // ─────────────────────────────────────────────
 
-  static _onActionClearAllies(_event, _target) {
-    this.allies = [];
-    this.render();
-  }
-
-  static _onActionClearEnemies(_event, _target) {
-    this.enemies = [];
-    this.render();
-  }
-
-  static _onActionRemoveEntry(_event, target) {
-    const side = target.dataset.side;
-    const uuid = target.dataset.uuid;
-    if (!uuid || !side) return;
-
-    const list = side === "enemies" ? this.enemies : this.allies;
-    removeEntryFromList(list, uuid);
-
-    this.render();
-  }
-
-  static _onActionOpenEncounterDialog(_event, _target) {
-    if (!game.user.isGM && !game.user.isAssistant) {
-      ui.notifications.warn(
-        "Tę funkcję może używać tylko MG lub asystent."
-      );
-      return;
-    }
-
-    const dialog = new EncounterCreateDialog({
-      calculator: this
-    });
-    dialog.render({ force: true });
-  }
-
-  static _onActionSetTargetDifficulty(_event, target) {
-    const diff = target?.dataset?.diff;
-    if (!["low", "moderate", "high"].includes(diff)) return;
-
-    this.targetDifficultyKey = diff;
-
-    game.settings
-      .set(MODULE_ID, "targetDifficulty", diff)
-      .catch(() => {});
-
-    this.render();
-  }
-
-  // ─────────────────────────────────────────────
-  // Save / Load / Clear saved allies/team
-  // ─────────────────────────────────────────────
-  static async _onActionSaveTeam(_event, _target) {
-    const pcUuids = getPcUuids(this.allies);
-    await setSavedTeam({ uuids: pcUuids });
-    ui.notifications.info("Zapisano drużynę (PC) w ustawieniach świata.");
-  }
-
-  static async _onActionSaveAllies(_event, _target) {
-    const allUuids = getAllyUuids(this.allies);
-    await setSavedAllies({ uuids: allUuids });
-    ui.notifications.info("Zapisano sojuszników (PC + NPC) w ustawieniach świata.");
-  }
-
-  static async _onActionLoadSaved(_event, _target) {
-    // Wczytujemy zapis – preferujemy savedAllies, fallback na savedTeam
-    const savedAllies = getSavedAllies();
-    const savedTeam = getSavedTeam();
-
-    const uuids = Array.isArray(savedAllies.uuids) && savedAllies.uuids.length
-      ? savedAllies.uuids
-      : Array.isArray(savedTeam.uuids) ? savedTeam.uuids : [];
-
-    if (!uuids || !uuids.length) {
-      ui.notifications.info("Brak zapisanego zestawu do wczytania.");
-      return;
-    }
-
-    // Zachowanie: wczytanie działa jak preset – najpierw czyścimy obecną lewą stronę
-    this.allies = [];
-
-    for (const uuid of uuids) {
-      try {
-        const actor = await fromUuid(uuid);
-        if (actor) {
-          addSingleActorToSide({
-            allies: this.allies,
-            enemies: this.enemies,
-            actor,
-            side: "allies",
-            getActorXpFn: getActorXp
-          });
-        } else {
-          console.warn(`${MODULE_ID} | Nie znaleziono aktora o uuid ${uuid} podczas wczytywania zapisu.`);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    this.render();
-    ui.notifications.info("Wczytano zapis sojuszników.");
-  }
-
-  static async _onActionClearSaved(_event, _target) {
-    // Usuwamy zapisane presety (czyszcząc tablice uuid)
-    await setSavedAllies({ uuids: [] });
-    await setSavedTeam({ uuids: [] });
-    ui.notifications.info("Usunięto zapis drużyny i sojuszników z ustawień świata.");
-  }
-
-  /**
-   * Aktualizuje ilość (quantity) wroga o danym uuid.
-   * mode:
-   *  - "delta" – zmiana o wartość (np. +1 / -1),
-   *  - "set"   – ustaw na wartość.
-   */
-  static _onActionIncreaseQuantity(_event, target) {
-    const uuid = target?.dataset?.uuid;
-    if (!uuid) return;
-
-    updateEnemyQuantity(this.enemies, uuid, "delta", 1);
-    this.render();
-  }
-
-  static _onActionDecreaseQuantity(_event, target) {
-    const uuid = target?.dataset?.uuid;
-    if (!uuid) return;
-
-    updateEnemyQuantity(this.enemies, uuid, "delta", -1);
-    this.render();
-  }
 
   /**
    * Zmiana ilości wroga wpisana ręcznie w input.
@@ -576,5 +446,53 @@ export class EncounterCalculatorApp extends HandlebarsApplicationMixin(
 
     updateEnemyQuantity(this.enemies, uuid, "set", parsed);
     this.render();
+    }
+
+  // ─────────────────────────────────────────────
+  // ACTIONS – delegatory do calculator-actions.js
+  // ─────────────────────────────────────────────
+
+  static _onActionClearAllies(_event, _target) {
+    onActionClearAllies(this, _event, _target);
+  }
+
+  static _onActionClearEnemies(_event, _target) {
+    onActionClearEnemies(this, _event, _target);
+  }
+
+  static _onActionRemoveEntry(_event, target) {
+    onActionRemoveEntry(this, _event, target);
+  }
+
+  static _onActionOpenEncounterDialog(_event, _target) {
+    onActionOpenEncounterDialog(this, _event, _target);
+  }
+
+  static _onActionSetTargetDifficulty(_event, target) {
+    onActionSetTargetDifficulty(this, _event, target);
+  }
+
+  static async _onActionSaveTeam(_event, _target) {
+    await onActionSaveTeam(this, _event, _target);
+  }
+
+  static async _onActionSaveAllies(_event, _target) {
+    await onActionSaveAllies(this, _event, _target);
+  }
+
+  static async _onActionLoadSaved(_event, _target) {
+    await onActionLoadSaved(this, _event, _target);
+  }
+
+  static async _onActionClearSaved(_event, _target) {
+    await onActionClearSaved(this, _event, _target);
+  }
+
+  static _onActionIncreaseQuantity(_event, target) {
+    onActionIncreaseQuantity(this, _event, target);
+  }
+
+  static _onActionDecreaseQuantity(_event, target) {
+    onActionDecreaseQuantity(this, _event, target);
   }
 }
