@@ -40,9 +40,9 @@ ręczne wpisywanie walut,
 
 rzuty kośćmi (dowolne formuły Foundry),
 
-Individual Treasure (DMG 2024),
+Individual Treasure,
 
-Treasure Hoards (DMG 2024),
+Treasure Hoards,
 
 czyszczenie walut przed generowaniem,
 
@@ -240,7 +240,7 @@ wartość zostanie wpisana do pola waluty.
 
 Liczone osobno dla każdego wroga,
 
-oparte o tabelę DMG 2024,
+oparte o tabelę,
 
 wybór: rzut / średnia,
 
